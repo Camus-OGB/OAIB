@@ -1,15 +1,8 @@
 import React from 'react';
 
-export enum Page {
-  HOME = 'home',
-  PROGRAM = 'program',
-  RESULTS = 'results',
-  ABOUT = 'about'
-}
-
 export interface NavItem {
   label: string;
-  page: Page;
+  to: string;
 }
 
 export interface Stat {
@@ -21,9 +14,9 @@ export interface Stat {
 
 export interface NewsItem {
   category: string;
-  categoryColor: string;
+  color: string;
   title: string;
-  description: string;
+  desc: string;
   date: string;
   image: string;
 }
@@ -31,6 +24,6 @@ export interface NewsItem {
 export interface TeamMember {
   name: string;
   role: string;
-  bio: string;
-  image: string;
+  desc: string;
+  img: string;
 }
