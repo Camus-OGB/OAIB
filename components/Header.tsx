@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, BrainCircuit, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
@@ -12,92 +12,114 @@ const navItems = [
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const location = useLocation();
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 bg-white/90 dark:bg-[#0a192f]/90 backdrop-blur-md border-b border-[#f0f4f2] dark:border-white/10 transition-colors duration-300" role="banner">
-      <div className="w-full px-6 md:px-8 lg:px-12 py-3 flex items-center justify-between">
-        <Link
-          to="/"
-          className="flex items-center gap-2"
-          aria-label="OAIB - Retour a l'accueil"
-        >
-          <div className="size-8 text-primary transition-all">
-            <BrainCircuit className="w-full h-full" strokeWidth={2.5} />
-          </div>
-          <h2 className="text-[#111813] dark:text-white text-lg font-black tracking-tight uppercase transition-all">OAIB</h2>
-        </Link>
-
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6" role="navigation" aria-label="Navigation principale">
-          {navItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded px-1 ${
-                location.pathname === item.to ? 'text-primary' : 'hover:text-primary text-gray-800 dark:text-gray-300'
-              }`}
-              aria-current={location.pathname === item.to ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <div className="h-5 w-px bg-gray-200 dark:bg-white/10 mx-2" aria-hidden="true"></div>
-
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-          >
-            {isDark ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
-          </button>
-
+    <header 
+      className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 lg:px-8 pt-4"
+      role="banner"
+    >
+      <div className={`mx-auto max-w-6xl transition-all duration-500 ${
+        isScrolled 
+          ? 'bg-white/95 dark:bg-[#0a192f]/95 shadow-xl' 
+          : 'bg-white/80 dark:bg-[#0a192f]/80'
+      } backdrop-blur-xl rounded-2xl border border-gray-200/50 dark:border-white/10`}>
+        <div className="flex items-center justify-between px-5 py-3">
+          {/* Logo */}
           <Link
-            to="/programme"
-            className="cursor-pointer items-center justify-center rounded-lg h-9 px-5 bg-primary text-[#111813] text-sm font-bold transition-transform hover:scale-105 active:scale-95 shadow-md shadow-primary/20 inline-flex focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            to="/"
+            className="flex items-center gap-3"
+            aria-label="OAIB - Retour a l'accueil"
           >
-            Rejoindre
+            <div className={`flex items-center justify-center rounded-xl bg-primary transition-all ${isScrolled ? 'w-9 h-9' : 'w-10 h-10'}`}>
+              <BrainCircuit className="w-5 h-5 text-tech-blue" strokeWidth={2.5} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-gray-900 dark:text-white text-base font-black tracking-tight leading-none">OAIB</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wider hidden sm:block">OLYMPIADES IA BENIN</span>
+            </div>
           </Link>
-        </nav>
 
-        {/* Mobile Menu Toggle */}
-        <div className="md:hidden flex items-center gap-4">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-            aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-          >
-            {isDark ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
-          </button>
-          <button
-            className="p-2 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary rounded"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-expanded={isMenuOpen}
-            aria-controls="mobile-menu"
-            aria-label={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
-          >
-            {isMenuOpen ? <X /> : <Menu />}
-          </button>
+          {/* Desktop Nav - Centered */}
+          <nav className="hidden lg:flex items-center" role="navigation" aria-label="Navigation principale">
+            <div className="flex items-center gap-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`relative px-5 py-2 text-sm font-semibold rounded-xl transition-all ${
+                    location.pathname === item.to 
+                      ? 'bg-primary text-tech-blue' 
+                      : 'text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
+                  }`}
+                  aria-current={location.pathname === item.to ? 'page' : undefined}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+              aria-label={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            >
+              {isDark ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+            </button>
+
+            <Link
+              to="/programme"
+              className="hidden md:inline-flex items-center justify-center px-5 py-2.5 bg-primary text-tech-blue text-sm font-bold rounded-xl hover:shadow-[0_0_20px_rgba(19,236,91,0.4)] transition-all"
+            >
+              S'inscrire
+            </Link>
+
+            {/* Mobile Menu Toggle */}
+            <button
+              className="lg:hidden p-2.5 rounded-xl text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-all"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-expanded={isMenuOpen}
+              aria-controls="mobile-menu"
+              aria-label={isMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+            >
+              {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Nav */}
-      {isMenuOpen && (
-        <nav
-          id="mobile-menu"
-          className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-[#112240] border-b border-gray-100 dark:border-white/10 p-4 flex flex-col gap-4 shadow-xl"
-          role="navigation"
-          aria-label="Menu mobile"
-        >
+      <div
+        id="mobile-menu"
+        className={`lg:hidden mx-4 mt-2 bg-white dark:bg-[#0a192f] rounded-2xl border border-gray-200/50 dark:border-white/10 shadow-xl overflow-hidden transition-all duration-300 ${
+          isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+        }`}
+        role="navigation"
+        aria-label="Menu mobile"
+      >
+        <div className="px-6 py-4 flex flex-col gap-2">
           {navItems.map((item) => (
             <Link
               key={item.to}
               to={item.to}
               onClick={() => setIsMenuOpen(false)}
-              className={`text-left text-sm font-bold py-2 focus:outline-none focus:ring-2 focus:ring-primary rounded px-2 ${
-                location.pathname === item.to ? 'text-primary' : 'text-gray-800 dark:text-gray-200'
+              className={`text-left text-sm font-semibold py-3 px-4 rounded-xl transition-all ${
+                location.pathname === item.to 
+                  ? 'bg-primary/10 text-primary' 
+                  : 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10'
               }`}
               aria-current={location.pathname === item.to ? 'page' : undefined}
             >
@@ -107,12 +129,12 @@ const Header: React.FC = () => {
           <Link
             to="/programme"
             onClick={() => setIsMenuOpen(false)}
-            className="w-full rounded-lg h-10 bg-primary text-[#111813] text-sm font-bold flex items-center justify-center"
+            className="mt-2 w-full rounded-xl py-3.5 bg-tech-blue dark:bg-primary text-white dark:text-tech-blue text-sm font-bold flex items-center justify-center"
           >
-            Rejoindre
+            S'inscrire maintenant
           </Link>
-        </nav>
-      )}
+        </div>
+      </div>
     </header>
   );
 };

@@ -16,7 +16,7 @@ const App: React.FC = () => {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col font-display bg-background-light dark:bg-[#0a192f] text-gray-900 dark:text-slate-100 transition-colors duration-300">
+        <div className="min-h-screen flex flex-col font-display bg-[#e8eeea] dark:bg-[#0a192f] text-gray-900 dark:text-slate-100 transition-colors duration-300">
           <ScrollToTopOnNav />
           <Header />
           <main className="flex-grow w-full">
