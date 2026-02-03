@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* ===== OAIB COLOR PALETTE ===== */
+
+  /* Trust Blue - Primary (Lightened) */
+  --color-primary: #0F9DE8;
+  --color-primary-light: #4A5BC2;
+  --color-primary-dark: #007FFF;
+
+  /* AI Glow - Accent (Innovation & Technology with green tint) */
+  --color-accent: #00E5A0;
+  --color-accent-light: #4DFFBE;
+  --color-accent-dark: #00B87A;
+
+  /* Secondary accent - Cyan */
+  --color-cyan: #00D4FF;
+  --color-cyan-light: #4DE8FF;
+  --color-cyan-dark: #00A8CC;
+
+  /* Pattern color for backgrounds */
+  --color-pattern: #007FFF;
+  --color-pattern-light: #3399FF;
+  --color-pattern-dark: #0066CC;
+
+  /* ===== LIGHT THEME ===== */
+  /* Background colors */
+  --color-background: #F8FAFC;
+  --color-background-alt: #EEF2F7;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F1F5F9;
+
+  /* Text colors - Light theme */
+  --color-text: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+
+  /* Borders - Light theme */
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+
+  /* ===== DARK THEME ===== */
+  /* Dark backgrounds */
+  --color-navy: #0A0F1A;
+  --color-slate-dark: #121A2E;
+  --color-dark-surface: #1A2340;
+  --color-dark-surface-alt: #243154;
+
+  /* Text colors - Dark theme */
+  --color-dark-text: #F1F5F9;
+  --color-dark-text-secondary: #94A3B8;
+  --color-dark-text-muted: #64748B;
+
+  /* Borders - Dark theme */
+  --color-dark-border: #2D3A5C;
+  --color-dark-border-light: #3D4A6C;
+
+  /* Benin flag colors */
+  --color-benin-yellow: #FCD116;
+  --color-benin-red: #E8112D;
+  --color-benin-green: #008751;
+
+  /* Legacy aliases for compatibility */
+  --color-teal: #007FFF;
+  --color-teal-medium: #3399FF;
+  --color-sky: #E2E8F0;
+  --color-steel: #64748B;
+
+  /* Fonts */
+  --font-display: "Inter", sans-serif;
+  --font-title: "Montserrat", sans-serif;
+}
+
+body {
+  font-family: var(--font-display);
+  background-color: var(--color-background);
+  color: var(--color-text);
+}
+
+/* Dark theme */
+.dark body,
+body.dark {
+  background-color: var(--color-navy);
+  color: var(--color-dark-text);
+}
+
+.dark {
+  --color-background: var(--color-navy);
+  --color-background-alt: var(--color-slate-dark);
+  --color-surface: var(--color-dark-surface);
+  --color-surface-alt: var(--color-dark-surface-alt);
+  --color-text: var(--color-dark-text);
+  --color-text-secondary: var(--color-dark-text-secondary);
+  --color-text-muted: var(--color-dark-text-muted);
+  --color-border: var(--color-dark-border);
+  --color-border-light: var(--color-dark-border-light);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-title);
+}
+
+/* Skeleton animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .skeleton {
+  background: linear-gradient(90deg, #1E293B 25%, #334155 50%, #1E293B 75%);
+  background-size: 200% 100%;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Pattern color utility */
+.text-pattern {
+  color: var(--color-pattern);
+}
+
+.dark .text-pattern {
+  color: var(--color-pattern-light);
+}
+
+/* Hide scrollbar for carousel on mobile */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
