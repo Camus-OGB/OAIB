@@ -9,11 +9,6 @@ export interface SignUpPayload {
   birthDate: string;
 }
 
-const getRedirectUrl = () => {
-  if (typeof window === 'undefined') return undefined;
-  return `${window.location.origin}/connexion`;
-};
-
 export const signUp = async (payload: SignUpPayload) => {
   const { email, password, ...metadata } = payload;
   return supabase.auth.signUp({
@@ -21,7 +16,6 @@ export const signUp = async (payload: SignUpPayload) => {
     password,
     options: {
       data: metadata,
-      emailRedirectTo: getRedirectUrl(),
     },
   });
 };
