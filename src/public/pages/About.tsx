@@ -29,17 +29,14 @@ const About: React.FC = () => {
     <div className="w-full bg-background relative">
       {/* Hero Header - Style editorial/storytelling */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-        {/* Split background */}
-        <div className="absolute inset-0 flex">
-          <div className="w-full lg:w-1/2 bg-background" />
-          <div className="hidden lg:block w-1/2 relative">
-            <img 
-              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-primary/40" />
-          </div>
+        {/* Background image */}
+        <div className="absolute inset-0">
+          <img 
+            src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/85 to-background/75" />
         </div>
         
         {/* Pattern */}
@@ -89,15 +86,7 @@ const About: React.FC = () => {
           </div>
         </div>
         
-        {/* Mobile image */}
-        <div className="lg:hidden absolute bottom-0 right-0 w-2/3 h-1/3">
-          <img 
-            src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=75"
-            alt=""
-            className="w-full h-full object-cover rounded-tl-[3rem]"
-          />
-          <div className="absolute inset-0 bg-primary/30 rounded-tl-[3rem]" />
-        </div>
+
       </section>
 
       {/* Pillars - Style magazine avec image de fond */}
@@ -226,18 +215,32 @@ const About: React.FC = () => {
             <p className="text-text-secondary max-w-xl mx-auto">Gouvernement, entreprises tech et organisations internationales s'associent pour propulser l'IA au Benin.</p>
           </AnimatedSection>
           
-          {/* Logos en grille fluide */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-            {partners.map((p, i) => (
-              <AnimatedCard key={i} delay={i * 0.05}>
-                <div className="group bg-white rounded-2xl p-8 border border-border hover:border-primary/30 hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[140px]">
-                  <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <span className="text-xl font-black text-text-muted">{p.charAt(0)}</span>
+          {/* Carrousel de logos */}
+          <div className="relative overflow-hidden mb-12">
+            <div className="flex animate-scroll">
+              {/* Premier groupe */}
+              {partners.map((p, i) => (
+                <div key={`p1-${i}`} className="flex-shrink-0 w-64 mx-4">
+                  <div className="group bg-white rounded-2xl p-8 border border-border hover:border-primary/30 hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="text-xl font-black text-text-muted">{p.charAt(0)}</span>
+                    </div>
+                    <span className="text-sm font-bold text-text-secondary text-center">{p}</span>
                   </div>
-                  <span className="text-sm font-bold text-text-secondary text-center">{p}</span>
                 </div>
-              </AnimatedCard>
-            ))}
+              ))}
+              {/* Duplication pour effet infini */}
+              {partners.map((p, i) => (
+                <div key={`p2-${i}`} className="flex-shrink-0 w-64 mx-4">
+                  <div className="group bg-white rounded-2xl p-8 border border-border hover:border-primary/30 hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="text-xl font-black text-text-muted">{p.charAt(0)}</span>
+                    </div>
+                    <span className="text-sm font-bold text-text-secondary text-center">{p}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           
           {/* CTA Partenaire */}

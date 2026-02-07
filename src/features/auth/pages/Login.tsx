@@ -140,7 +140,7 @@ const LoginPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">Adresse email</label>
                 <div className={`relative transition-all duration-300 ${focusedField === 'email' ? 'scale-[1.02]' : ''}`}>
-                  <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'email' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'email' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
                     <Mail size={20} />
                   </div>
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} required className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="votreemail@exemple.com" />
@@ -150,11 +150,11 @@ const LoginPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">Mot de passe</label>
                 <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'scale-[1.02]' : ''}`}>
-                  <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
                     <Lock size={20} />
                   </div>
                   <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)} required className="w-full pl-16 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>

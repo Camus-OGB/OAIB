@@ -187,10 +187,10 @@ const RegisterPage: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-slate-600 mb-2">Mot de passe *</label>
                       <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'scale-[1.02]' : ''}`}>
-                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
+                        <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
                         <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
                           className={`w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.password ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
@@ -201,10 +201,10 @@ const RegisterPage: React.FC = () => {
                     <div>
                       <label className="block text-sm font-medium text-slate-600 mb-2">Confirmer *</label>
                       <div className={`relative transition-all duration-300 ${focusedField === 'confirmPassword' ? 'scale-[1.02]' : ''}`}>
-                        <div className={`absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'confirmPassword' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
+                        <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'confirmPassword' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
                         <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} onFocus={() => setFocusedField('confirmPassword')} onBlur={() => setFocusedField(null)}
                           className={`w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.confirmPassword ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all">
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
                           {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>

@@ -97,9 +97,9 @@ const Footer: React.FC = () => {
               Legal
             </h3>
             <ul className="space-y-3">
-              <li><a href="#" className="text-sm text-text-muted hover:text-accent transition-colors">Mentions Legales</a></li>
-              <li><a href="#" className="text-sm text-text-muted hover:text-accent transition-colors">Confidentialite</a></li>
-              <li><a href="#" className="text-sm text-text-muted hover:text-accent transition-colors">Conditions d'utilisation</a></li>
+              <li><Link to="/mentions-legales" className="text-sm text-text-muted hover:text-accent transition-colors">Mentions Legales</Link></li>
+              <li><Link to="/politique-confidentialite" className="text-sm text-text-muted hover:text-accent transition-colors">Politique de Confidentialite</Link></li>
+              <li><Link to="/actualites" className="text-sm text-text-muted hover:text-accent transition-colors">Actualites</Link></li>
             </ul>
           </div>
 

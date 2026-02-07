@@ -9,6 +9,7 @@ import { heroImages, testimonials, newsItems } from '../data/home';
 import { AnimatedSection, AnimatedCard } from '../../shared/components/layout/AnimatedSection';
 import { OptimizedImage } from '../../shared/components/ui/OptimizedImage';
 import { NeuralNetworkPattern, ConstellationPattern, CircuitPattern } from '../../shared/components/patterns/AIPatterns';
+import LiveCounter from '../../shared/components/LiveCounter';
 
 const EDITION_DATE = new Date('2026-12-01T00:00:00');
 
@@ -21,26 +22,33 @@ const Home: React.FC = () => {
 
   return (
     <div className="w-full overflow-hidden bg-background">
-      {/* Hero Section - Light Modern Design */}
-      <section className="relative min-h-screen flex items-center bg-gradient-to-br from-background via-white to-background-alt">
-        {/* Soft Background Shapes */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-          <div className="absolute top-[10%] right-[15%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[20%] left-[10%] w-[400px] h-[400px] bg-accent/15 rounded-full blur-[100px]" />
-          <div className="absolute top-[50%] left-[40%] w-[300px] h-[300px] bg-primary/5 rounded-full blur-[80px]" />
-          {/* Benin flag colors - subtle decorative lines */}
-          <div className="absolute top-[30%] right-[5%] w-[250px] h-[250px] bg-benin-yellow/15 rounded-full blur-[80px]" />
-          <div className="absolute bottom-[10%] right-[25%] w-[180px] h-[180px] bg-benin-red/12 rounded-full blur-[70px]" />
-          <div className="absolute top-[60%] left-[5%] w-[120px] h-[120px] bg-benin-green/10 rounded-full blur-[60px]" />
-          {/* Subtle tricolor accent line */}
-          <div className="absolute top-0 left-0 right-0 h-1 flex">
-            <div className="flex-1 bg-benin-green/20" />
-            <div className="flex-1 bg-benin-yellow/25" />
-            <div className="flex-1 bg-benin-red/20" />
-          </div>
-          {/* Pattern overlays - more visible */}
-          <NeuralNetworkPattern className="w-[700px] h-[700px] text-pattern top-0 right-0 opacity-40" />
-          <ConstellationPattern className="w-[500px] h-[500px] text-pattern bottom-10 left-10 opacity-45" />
+      {/* Hero Section - Light & Welcoming */}
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-white via-background to-background-alt">
+        {/* Subtle background image */}
+        <div className="absolute inset-0 opacity-[0.08]">
+          <img 
+            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
+        {/* Soft color blurs */}
+        <div className="absolute top-[15%] right-[10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[20%] left-[5%] w-[400px] h-[400px] bg-primary/15 rounded-full blur-[100px]" />
+        
+        {/* Patterns */}
+        <NeuralNetworkPattern className="w-[600px] h-[600px] text-pattern absolute bottom-0 right-0 opacity-30" />
+        <ConstellationPattern className="w-[400px] h-[400px] text-pattern absolute top-10 left-10 opacity-35" />
+        {/* Benin flag colors - subtle blurs */}
+        <div className="absolute top-[25%] right-[30%] w-[200px] h-[200px] bg-benin-yellow/12 rounded-full blur-[70px]" />
+        <div className="absolute bottom-[35%] left-[25%] w-[150px] h-[150px] bg-benin-red/10 rounded-full blur-[60px]" />
+        <div className="absolute top-[55%] right-[15%] w-[120px] h-[120px] bg-benin-green/8 rounded-full blur-[50px]" />
+        {/* Subtle tricolor line */}
+        <div className="absolute top-0 left-0 right-0 h-1 flex">
+          <div className="flex-1 bg-benin-green/25" />
+          <div className="flex-1 bg-benin-yellow/30" />
+          <div className="flex-1 bg-benin-red/25" />
         </div>
 
         <div className="w-full relative z-10 px-6 sm:px-10 md:px-16 lg:px-20 py-16 lg:py-20">
@@ -124,7 +132,6 @@ const Home: React.FC = () => {
                   className="flex justify-center lg:justify-start items-center gap-8 mt-10 pt-8 border-t border-border"
                 >
                   {[
-                    { value: '1,500+', label: 'Participants', icon: Users },
                     { value: '04', label: 'Editions', icon: Sparkles },
                     { value: '10+', label: 'Partenaires', icon: Globe },
                   ].map((stat, i) => (
@@ -133,6 +140,13 @@ const Home: React.FC = () => {
                       <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mt-1">{stat.label}</p>
                     </div>
                   ))}
+                  {/* Live counter for candidates */}
+                  <div className="text-center lg:text-left">
+                    <p className="text-2xl sm:text-3xl font-black text-primary">
+                      <LiveCounter />
+                    </p>
+                    <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mt-1">Inscrits 2026</p>
+                  </div>
                 </motion.div>
               </div>
 
@@ -335,20 +349,6 @@ const Home: React.FC = () => {
                 </div>
               </Link>
             </AnimatedCard>
-
-            {/* Card 5 - Epreuves */}
-            <AnimatedCard delay={0.4}>
-              <a
-                href="https://github.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative h-44 flex flex-col justify-center items-center p-6 bg-primary/10 border border-border rounded-2xl overflow-hidden hover:border-accent hover:shadow-lg transition-all duration-300 text-center"
-              >
-                <Cpu className="w-10 h-10 text-accent mb-3 group-hover:scale-110 transition-transform" />
-                <h3 className="text-lg font-bold text-text mb-1">Epreuves OAIB</h3>
-                <p className="text-xs text-text-secondary">Sujets des editions precedentes</p>
-              </a>
-            </AnimatedCard>
           </div>
         </div>
       </section>
@@ -464,19 +464,29 @@ const Home: React.FC = () => {
                 aria-label={`Temoignage ${testimonialCarousel.current + 1} sur ${testimonials.length}`}
               >
                 <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-                  {/* Photo */}
+                  {/* Video / Photo */}
                   <div className="relative lg:w-2/5 shrink-0">
                     <div className="relative w-64 h-80 sm:w-72 sm:h-96 mx-auto">
                       {/* Glow effect */}
                       <div className="absolute -inset-4 bg-primary/15 rounded-[2rem] blur-xl opacity-60" />
 
-                      {/* Image */}
-                      <div className="relative w-full h-full rounded-[1.5rem] overflow-hidden border border-border shadow-lg">
-                        <OptimizedImage
-                          src={testimonials[testimonialCarousel.current].image}
-                          alt={testimonials[testimonialCarousel.current].name}
-                          className="h-full"
-                        />
+                      {/* Video or Image */}
+                      <div className="relative w-full h-full rounded-[1.5rem] overflow-hidden border border-border shadow-lg bg-navy">
+                        {testimonials[testimonialCarousel.current].videoUrl ? (
+                          <iframe
+                            src={testimonials[testimonialCarousel.current].videoUrl}
+                            title={`Témoignage de ${testimonials[testimonialCarousel.current].name}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="w-full h-full"
+                          />
+                        ) : (
+                          <OptimizedImage
+                            src={testimonials[testimonialCarousel.current].image}
+                            alt={testimonials[testimonialCarousel.current].name}
+                            className="h-full"
+                          />
+                        )}
                       </div>
 
                       {/* Quote icon */}
@@ -542,29 +552,52 @@ const Home: React.FC = () => {
       </section>
 
       {/* Partners Section */}
-      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 bg-white border-t border-border">
+      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 bg-white border-t border-border overflow-hidden">
         <div className="w-full max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-10">
             <p className="text-sm font-bold uppercase tracking-[0.2em] text-text-secondary">Nos Partenaires</p>
           </AnimatedSection>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 items-center">
-            {[
-              { name: 'Ministere du Numerique', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Coat_of_arms_of_Benin.svg/180px-Coat_of_arms_of_Benin.svg.png' },
-              { name: 'UNESCO', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/UNESCO_logo.svg/180px-UNESCO_logo.svg.png' },
-              { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png' },
-              { name: 'UNICEF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_of_UNICEF.svg/200px-Logo_of_UNICEF.svg.png' },
-              { name: 'African Union', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Flag_of_the_African_Union.svg/200px-Flag_of_the_African_Union.svg.png' },
-            ].map((partner, i) => (
-              <AnimatedCard key={partner.name} delay={i * 0.05}>
-                <div className="flex items-center justify-center h-20 px-6 py-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-default">
-                  <img
-                    src={partner.logo}
-                    alt={partner.name}
-                    className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
-                  />
+          
+          {/* Carrousel de logos */}
+          <div className="relative overflow-hidden">
+            <div className="flex animate-scroll">
+              {/* Premier groupe */}
+              {[
+                { name: 'Ministere du Numerique', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Coat_of_arms_of_Benin.svg/180px-Coat_of_arms_of_Benin.svg.png' },
+                { name: 'UNESCO', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/UNESCO_logo.svg/180px-UNESCO_logo.svg.png' },
+                { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png' },
+                { name: 'UNICEF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_of_UNICEF.svg/200px-Logo_of_UNICEF.svg.png' },
+                { name: 'African Union', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Flag_of_the_African_Union.svg/200px-Flag_of_the_African_Union.svg.png' },
+              ].map((partner, i) => (
+                <div key={`p1-${i}`} className="flex-shrink-0 w-64 mx-4">
+                  <div className="flex items-center justify-center h-20 px-6 py-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-default">
+                    <img
+                      src={partner.logo}
+                      alt={partner.name}
+                      className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                    />
+                  </div>
                 </div>
-              </AnimatedCard>
-            ))}
+              ))}
+              {/* Duplication pour effet infini */}
+              {[
+                { name: 'Ministere du Numerique', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Coat_of_arms_of_Benin.svg/180px-Coat_of_arms_of_Benin.svg.png' },
+                { name: 'UNESCO', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/UNESCO_logo.svg/180px-UNESCO_logo.svg.png' },
+                { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png' },
+                { name: 'UNICEF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_of_UNICEF.svg/200px-Logo_of_UNICEF.svg.png' },
+                { name: 'African Union', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Flag_of_the_African_Union.svg/200px-Flag_of_the_African_Union.svg.png' },
+              ].map((partner, i) => (
+                <div key={`p2-${i}`} className="flex-shrink-0 w-64 mx-4">
+                  <div className="flex items-center justify-center h-20 px-6 py-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-default">
+                    <img
+                      src={partner.logo}
+                      alt={partner.name}
+                      className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>

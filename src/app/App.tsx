@@ -16,6 +16,9 @@ const Home = lazy(() => import('../public/pages/Home'));
 const Results = lazy(() => import('../public/pages/Results'));
 const Program = lazy(() => import('../public/pages/Program'));
 const About = lazy(() => import('../public/pages/About'));
+const Blog = lazy(() => import('../public/pages/Blog'));
+const LegalNotice = lazy(() => import('../public/pages/LegalNotice'));
+const PrivacyPolicy = lazy(() => import('../public/pages/PrivacyPolicy'));
 const NotFound = lazy(() => import('../public/pages/NotFound'));
 
 // Auth Pages
@@ -58,6 +61,9 @@ const App: React.FC = () => {
                 <Route path="/programme" element={<Program />} />
                 <Route path="/resultats" element={<Results />} />
                 <Route path="/a-propos" element={<About />} />
+                <Route path="/actualites" element={<Blog />} />
+                <Route path="/mentions-legales" element={<LegalNotice />} />
+                <Route path="/politique-confidentialite" element={<PrivacyPolicy />} />
               </Route>
 
               {/* Auth Routes */}

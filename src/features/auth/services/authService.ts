@@ -1,4 +1,4 @@
-import { supabase } from '../../../lib/supabaseClient';
+import { mockAuth } from '../../../lib/mockAuth';
 
 export interface SignUpPayload {
   email: string;
@@ -11,7 +11,7 @@ export interface SignUpPayload {
 
 export const signUp = async (payload: SignUpPayload) => {
   const { email, password, ...metadata } = payload;
-  return supabase.auth.signUp({
+  return mockAuth.signUp({
     email,
     password,
     options: {
@@ -20,62 +20,37 @@ export const signUp = async (payload: SignUpPayload) => {
   });
 };
 
-export const verifySignupOtp = async (email: string, token: string) => {
-  const response = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: 'signup',
-  });
-  const session = response.data.session;
-  if (session?.access_token && session.refresh_token) {
-    await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
-  }
-  return response;
+export const verifySignupOtp = async (_email: string, _token: string) => {
+  // Mock: OTP verification always succeeds
+  await new Promise(resolve => setTimeout(resolve, 500));
+  const session = await mockAuth.getSession();
+  return { data: session.data, error: null };
 };
 
-export const resendSignupOtp = async (email: string) => {
-  return supabase.auth.resend({
-    type: 'signup',
-    email,
-  });
+export const resendSignupOtp = async (_email: string) => {
+  // Mock: Always succeeds
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return { data: {}, error: null };
 };
 
 export const signIn = async (email: string, password: string) => {
-  return supabase.auth.signInWithPassword({ email, password });
+  return mockAuth.signInWithPassword({ email, password });
 };
 
 export const signOut = async () => {
-  return supabase.auth.signOut();
+  return mockAuth.signOut();
 };
 
 export const sendPasswordResetOtp = async (email: string) => {
-  return supabase.auth.signInWithOtp({
-    email,
-    options: {
-      shouldCreateUser: false,
-    },
-  });
+  return mockAuth.resetPassword(email);
 };
 
-export const verifyPasswordResetOtp = async (email: string, token: string) => {
-  const response = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: 'email',
-  });
-  const session = response.data.session;
-  if (session?.access_token && session.refresh_token) {
-    await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
-    });
-  }
-  return response;
+export const verifyPasswordResetOtp = async (_email: string, _token: string) => {
+  // Mock: OTP verification always succeeds
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return { data: {}, error: null };
 };
 
 export const updatePassword = async (newPassword: string) => {
-  return supabase.auth.updateUser({ password: newPassword });
+  return mockAuth.updatePassword(newPassword);
 };

@@ -29,9 +29,9 @@ const Header: React.FC = () => {
     >
       <div className={`mx-auto max-w-[1400px] transition-all duration-500 ${
         isScrolled 
-          ? 'bg-white/95 shadow-lg shadow-primary/10' 
-          : 'bg-white/80'
-      } backdrop-blur-xl rounded-2xl border border-border`}>
+          ? 'bg-white/70 shadow-lg shadow-primary/10' 
+          : 'bg-white/50'
+      } backdrop-blur-xl rounded-2xl border border-border/50`}>
         <div className="flex items-center justify-between px-8 py-4">
           {/* Logo */}
           <Link

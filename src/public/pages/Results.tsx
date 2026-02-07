@@ -12,63 +12,60 @@ const Results: React.FC = () => {
 
   return (
     <div className="w-full bg-background relative">
-      {/* Hero - Style Dashboard moderne */}
-      <section className="relative overflow-hidden">
-        {/* Background avec motifs */}
-        <div className="absolute inset-0 bg-primary">
-          <MatrixGridPattern className="w-full h-[300px] text-pattern absolute bottom-0 left-0 opacity-60" />
-          <BinaryRainPattern className="w-[120px] h-[500px] text-pattern absolute top-0 right-20 opacity-50" />
-          <BinaryRainPattern className="w-[120px] h-[500px] text-pattern absolute top-10 right-60 opacity-40" />
-          <ConstellationPattern className="w-[300px] h-[300px] text-pattern absolute top-10 left-20 opacity-35" />
-          {/* Benin flag colors - subtle */}
-          <div className="absolute top-[30%] left-[15%] w-[220px] h-[220px] bg-benin-yellow/15 rounded-full blur-[80px]" />
-          <div className="absolute bottom-[40%] right-[10%] w-[150px] h-[150px] bg-benin-red/12 rounded-full blur-[60px]" />
-          <div className="absolute top-[60%] right-[40%] w-[100px] h-[100px] bg-benin-green/10 rounded-full blur-[50px]" />
-          {/* Tricolor line */}
-          <div className="absolute top-0 left-0 right-0 h-1 flex">
-            <div className="flex-1 bg-benin-green/40" />
-            <div className="flex-1 bg-benin-yellow/50" />
-            <div className="flex-1 bg-benin-red/40" />
-          </div>
+      {/* Hero - Tech & Data Driven */}
+      <section className="relative min-h-[80vh] flex items-center overflow-hidden">
+        {/* Background with tech overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-dark via-primary-dark to-primary">
+          <img 
+            src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+            alt=""
+            className="w-full h-full object-cover opacity-20"
+          />
         </div>
         
-        <div className="relative z-10 px-6 sm:px-10 md:px-16 lg:px-20 py-20 md:py-28">
+        {/* Patterns - strong presence */}
+        <MatrixGridPattern className="w-full h-[350px] text-pattern absolute bottom-0 left-0 opacity-60" />
+        <ConstellationPattern className="w-[450px] h-[450px] text-pattern absolute top-5 right-10 opacity-50" />
+        <CircuitPattern className="w-[320px] h-[320px] text-pattern absolute top-[40%] left-10 opacity-40" />
+        {/* Benin flag colors - vibrant */}
+        <div className="absolute top-[25%] right-[12%] w-[250px] h-[250px] bg-benin-yellow/18 rounded-full blur-[85px]" />
+        <div className="absolute bottom-[35%] left-[15%] w-[180px] h-[180px] bg-benin-red/15 rounded-full blur-[70px]" />
+        <div className="absolute top-[55%] right-[35%] w-[130px] h-[130px] bg-benin-green/12 rounded-full blur-[60px]" />
+        {/* Tricolor line - diagonal accent */}
+        <div className="absolute bottom-0 right-0 top-0 w-1 flex flex-col">
+          <div className="flex-1 bg-benin-green/40" />
+          <div className="flex-1 bg-benin-yellow/45" />
+          <div className="flex-1 bg-benin-red/40" />
+        </div>
+        
+        <div className="relative z-10 px-6 sm:px-10 md:px-16 lg:px-20 py-20">
           <div className="max-w-6xl mx-auto">
-            <AnimatedSection>
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
-                <div className="max-w-2xl">
-                  <div className="flex items-center gap-3 mb-6">
-                    <span className="px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full">
-                      Bilan
-                    </span>
-                    <span className="px-4 py-1.5 bg-white/10 text-white text-xs font-bold uppercase tracking-wider rounded-full">
-                      2022 - 2025
-                    </span>
-                  </div>
-                  <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-black leading-[1.1] mb-6">
-                    Resultats &<br />
-                    <span className="text-accent">Impact Mesurable</span>
-                  </h1>
-                  <p className="text-white/60 text-lg max-w-xl">
-                    Quatre ans d'excellence, des centaines de talents reveles, et un ecosysteme IA en pleine croissance au Benin.
-                  </p>
-                </div>
-                
-                {/* Stats rapides */}
-                <div className="flex gap-8 lg:gap-12">
+            <div className="max-w-2xl">
+              <AnimatedSection>
+                <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-8">
+                  Bilan 2022 - 2025
+                </span>
+                <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8">
+                  Resultats &<br />
+                  <span className="text-accent">Impact Mesurable</span>
+                </h1>
+                <p className="text-white/80 text-xl leading-relaxed mb-10">
+                  Quatre ans d'excellence, des centaines de talents reveles, et un ecosysteme IA en pleine croissance au Benin.
+                </p>
+                <div className="flex flex-wrap items-center gap-6">
                   {[
-                    { value: '1,247', label: 'Participants', color: 'text-accent' },
-                    { value: '96%', label: 'Satisfaction', color: 'text-accent-light' },
-                    { value: '45+', label: 'Projets IA', color: 'text-white' },
+                    { value: '1,247', label: 'Participants' },
+                    { value: '96%', label: 'Satisfaction' },
+                    { value: '45+', label: 'Projets IA' },
                   ].map((stat, i) => (
-                    <div key={i} className="text-center lg:text-left">
-                      <p className={`text-4xl lg:text-5xl font-black ${stat.color}`}>{stat.value}</p>
-                      <p className="text-white/40 text-sm font-medium uppercase tracking-wider mt-1">{stat.label}</p>
+                    <div key={i}>
+                      <p className="text-accent text-4xl font-black">{stat.value}</p>
+                      <p className="text-white/70 text-sm font-bold uppercase tracking-wider mt-1">{stat.label}</p>
                     </div>
                   ))}
                 </div>
-              </div>
-            </AnimatedSection>
+              </AnimatedSection>
+            </div>
           </div>
         </div>
       </section>

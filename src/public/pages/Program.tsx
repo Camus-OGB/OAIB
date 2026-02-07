@@ -13,47 +13,48 @@ const Program: React.FC = () => {
 
   return (
     <div className="w-full bg-background relative">
-      {/* Hero - Full Width Background Image avec overlay */}
-      <section className="relative min-h-[70vh] flex items-end overflow-hidden">
-        {/* Background Image */}
+      {/* Hero - Dynamic & Bold */}
+      <section className="relative min-h-[75vh] flex items-center overflow-hidden">
+        {/* Background Image with strong overlay */}
         <div className="absolute inset-0">
           <img 
-            src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+            src="https://images.unsplash.com/photo-1531482615713-2afd69097998?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
             alt=""
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-primary/75" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary-dark/90 to-primary/85" />
         </div>
         
-        {/* Pattern decoratif */}
-        <CircuitPattern className="w-[500px] h-[500px] text-pattern absolute top-10 right-10 opacity-60" />
-        <DataFlowPattern className="w-[250px] h-[600px] text-pattern absolute bottom-0 left-20 opacity-50" />
-        <HexagonPattern className="w-[300px] h-[300px] text-pattern absolute top-20 left-[40%] opacity-35" />
-        {/* Benin flag colors - subtle */}
-        <div className="absolute top-[40%] left-[10%] w-[180px] h-[180px] bg-benin-yellow/18 rounded-full blur-[70px]" />
-        <div className="absolute bottom-[20%] right-[30%] w-[130px] h-[130px] bg-benin-red/12 rounded-full blur-[60px]" />
-        <div className="absolute top-[20%] right-[15%] w-[100px] h-[100px] bg-benin-green/10 rounded-full blur-[50px]" />
-        {/* Tricolor vertical line */}
+        {/* Patterns - more visible */}
+        <CircuitPattern className="w-[550px] h-[550px] text-pattern absolute top-0 right-0 opacity-55" />
+        <DataFlowPattern className="w-[280px] h-[650px] text-pattern absolute bottom-0 left-10 opacity-50" />
+        <HexagonPattern className="w-[350px] h-[350px] text-pattern absolute top-[30%] left-[35%] opacity-35" />
+        {/* Benin flag colors */}
+        <div className="absolute top-[35%] right-[8%] w-[200px] h-[200px] bg-benin-yellow/20 rounded-full blur-[75px]" />
+        <div className="absolute bottom-[15%] left-[20%] w-[160px] h-[160px] bg-benin-green/15 rounded-full blur-[65px]" />
+        <div className="absolute top-[15%] left-[10%] w-[120px] h-[120px] bg-benin-red/12 rounded-full blur-[55px]" />
+        {/* Tricolor line */}
         <div className="absolute top-0 bottom-0 left-0 w-1 flex flex-col">
-          <div className="flex-1 bg-benin-green/30" />
-          <div className="flex-1 bg-benin-yellow/35" />
-          <div className="flex-1 bg-benin-red/30" />
+          <div className="flex-1 bg-benin-green/35" />
+          <div className="flex-1 bg-benin-yellow/40" />
+          <div className="flex-1 bg-benin-red/35" />
         </div>
         
         {/* Content */}
         <div className="relative z-10 w-full px-6 sm:px-10 md:px-16 lg:px-20 py-20">
           <div className="max-w-6xl mx-auto">
-            <AnimatedSection>
-              <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-6">
-                Edition 2026
-              </span>
-              <h1 className="text-white text-4xl md:text-6xl lg:text-7xl font-black leading-[1.1] max-w-4xl mb-6">
-                Votre parcours vers<br />
-                <span className="text-accent">l'excellence en IA</span>
-              </h1>
-              <p className="text-accent/80 text-lg md:text-xl max-w-2xl mb-10">
-                Six etapes pour transformer votre passion en expertise. Rejoignez les futurs leaders de l'intelligence artificielle au Benin.
-              </p>
+            <div className="max-w-2xl">
+              <AnimatedSection>
+                <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-6">
+                  Edition 2026
+                </span>
+                <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8">
+                  Votre parcours vers<br />
+                  <span className="text-accent">l'excellence en IA</span>
+                </h1>
+                <p className="text-white/80 text-xl leading-relaxed mb-10">
+                  Six etapes pour transformer votre passion en expertise. Rejoignez les futurs leaders de l'intelligence artificielle au Benin.
+                </p>
               <div className="flex flex-wrap gap-4">
                 <button className="bg-accent hover:bg-accent-light text-primary h-14 px-8 rounded-full font-bold text-base transition-all">
                   Commencer l'inscription
@@ -62,15 +63,9 @@ const Program: React.FC = () => {
                   Telecharger le guide
                 </button>
               </div>
-            </AnimatedSection>
+              </AnimatedSection>
+            </div>
           </div>
-        </div>
-        
-        {/* Courbe decorative en bas */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" fill="none" className="w-full h-auto">
-            <path d="M0 60V30C240 50 480 10 720 30C960 50 1200 10 1440 30V60H0Z" className="fill-background" />
-          </svg>
         </div>
       </section>
 
@@ -133,6 +128,60 @@ const Program: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Calendar 2026 - NEW SECTION */}
+      <section className="relative px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-background-alt overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.02]">
+          <img 
+            src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+            alt=""
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <CircuitPattern className="w-[300px] h-[300px] text-pattern absolute top-10 right-0 opacity-25" />
+        <div className="absolute top-[20%] left-[5%] w-[100px] h-[100px] bg-benin-yellow/8 rounded-full blur-[50px]" />
+        
+        <div className="max-w-6xl mx-auto relative z-10">
+          <AnimatedSection className="text-center mb-14">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent mb-3">Calendrier</p>
+            <h2 className="text-3xl md:text-4xl font-black text-text mb-4">Dates Cles 2026</h2>
+            <p className="text-text-secondary max-w-2xl mx-auto">Marquez ces dates importantes dans votre agenda. Ne manquez aucune etape de la competition.</p>
+          </AnimatedSection>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              { month: 'JANVIER', date: '15', title: 'Ouverture Inscriptions', desc: 'Debut de la periode d\'inscription en ligne', color: 'bg-primary' },
+              { month: 'FEVRIER', date: '28', title: 'Cloture Inscriptions', desc: 'Date limite pour soumettre votre candidature', color: 'bg-accent-dark' },
+              { month: 'MARS', date: '01-31', title: 'Formation en Ligne', desc: 'Acces aux modules de formation IA', color: 'bg-accent' },
+              { month: 'AVRIL', date: '05', title: 'Examens Preliminaires', desc: 'Tests en ligne de logique et programmation', color: 'bg-primary-light' },
+              { month: 'MAI', date: '10', title: 'Fin Qualificatifs', desc: 'Dernier jour des evenements regionaux', color: 'bg-benin-yellow' },
+              { month: 'JUIN', date: '15-16', title: 'Grande Finale', desc: 'Hackathon 24h a Cotonou', color: 'bg-benin-red' },
+            ].map((event, i) => (
+              <AnimatedCard key={i} delay={i * 0.1}>
+                <div className="bg-white rounded-2xl overflow-hidden border border-border hover:shadow-xl transition-all group">
+                  <div className={`${event.color} text-white p-4 text-center`}>
+                    <p className="text-xs font-bold uppercase tracking-wider opacity-80">{event.month}</p>
+                    <p className="text-4xl font-black mt-1">{event.date}</p>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-bold text-text mb-2 group-hover:text-primary transition-colors">{event.title}</h3>
+                    <p className="text-sm text-text-secondary">{event.desc}</p>
+                  </div>
+                </div>
+              </AnimatedCard>
+            ))}
+          </div>
+
+          <AnimatedSection className="mt-12 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-white rounded-2xl border border-border shadow-sm">
+              <p className="text-text font-bold">Ajoutez ces dates a votre calendrier</p>
+              <button className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-light transition-all">
+                Telecharger (.ics)
+              </button>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
 
