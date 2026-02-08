@@ -23,7 +23,7 @@ const Footer: React.FC = () => {
             </p>
             <Link
               to="/programme"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-accent text-primary font-bold rounded-full hover:bg-accent-light hover:shadow-lg transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-accent text-white font-bold rounded-full hover:bg-accent-light hover:shadow-lg transition-all"
             >
               S'inscrire maintenant
               <ArrowRight size={18} />
@@ -38,8 +38,8 @@ const Footer: React.FC = () => {
           {/* Brand */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <BrainCircuit className="w-5 h-5 text-primary" strokeWidth={2.5} />
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                <BrainCircuit className="w-5 h-5 text-white" strokeWidth={2.5} />
               </div>
               <div>
                 <span className="font-black tracking-tight text-white text-lg block">OAIB</span>
@@ -142,12 +142,12 @@ const Footer: React.FC = () => {
           <div className="flex-1 bg-benin-red/40"></div>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-text-muted uppercase tracking-wider">
+          <p className="text-sm text-white uppercase tracking-wider drop-shadow-md">
             &copy; {new Date().getFullYear()} Olympiades d'IA du Benin. Tous droits reserves.
           </p>
-          <div className="flex items-center gap-6 text-xs text-text-muted">
-            <a href="#" className="hover:text-accent transition-colors">Politique de confidentialite</a>
-            <a href="#" className="hover:text-accent transition-colors">Conditions</a>
+          <div className="flex items-center gap-6 text-sm text-white">
+            <a href="#" className="hover:text-accent transition-colors drop-shadow">Politique de confidentialite</a>
+            <a href="#" className="hover:text-accent transition-colors drop-shadow">Conditions</a>
           </div>
         </div>
       </div>

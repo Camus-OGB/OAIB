@@ -7,14 +7,13 @@ import {
   Shield,
   Smartphone,
   Mail,
-  Globe,
-  Moon,
-  Sun,
   Check,
   AlertCircle,
   Save,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
+import { changePassword } from '../../features/auth/services/authService';
 
 interface NotificationSettings {
   email: boolean;
@@ -32,6 +31,8 @@ const StudentSettings: React.FC = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const [notifications, setNotifications] = useState<NotificationSettings>({
     email: true,
@@ -41,8 +42,6 @@ const StudentSettings: React.FC = () => {
     newsUpdates: false,
   });
 
-  const [language, setLanguage] = useState('fr');
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light');
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -51,16 +50,24 @@ const StudentSettings: React.FC = () => {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSavePassword = () => {
-    // TODO: Implement password change
-    console.log('Changing password...');
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+  const handleSavePassword = async () => {
+    setPasswordError('');
+    if (!currentPassword || !newPassword) { setPasswordError('Remplissez tous les champs'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('Les mots de passe ne correspondent pas'); return; }
+    if (newPassword.length < 8) { setPasswordError('Minimum 8 caractères'); return; }
+    setSaving(true);
+    try {
+      const res = await changePassword(currentPassword, newPassword);
+      if (res.error) { setPasswordError(res.error?.message || 'Erreur, vérifiez votre mot de passe actuel'); setSaving(false); return; }
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch { setPasswordError('Erreur réseau'); }
+    finally { setSaving(false); }
   };
 
   const handleSaveNotifications = () => {
-    // TODO: Save notification settings
-    console.log('Saving notifications...', notifications);
+    // Notification preferences are stored client-side for now
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
   };
@@ -83,7 +90,7 @@ const StudentSettings: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Security section */}
-        <div className="bg-white rounded-2xl border border-border p-6">
+        <div className="bg-white/80 rounded-2xl border border-border p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
               <Lock className="w-5 h-5 text-primary" />
@@ -164,11 +171,18 @@ const StudentSettings: React.FC = () => {
               </div>
             </div>
 
+            {passwordError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-benin-red">
+                {passwordError}
+              </div>
+            )}
+
             <button
               onClick={handleSavePassword}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors"
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-60"
             >
-              <Save size={18} />
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Mettre à jour le mot de passe
             </button>
           </div>
@@ -200,7 +214,7 @@ const StudentSettings: React.FC = () => {
         </div>
 
         {/* Notifications section */}
-        <div className="bg-white rounded-2xl border border-border p-6">
+        <div className="bg-white/80 rounded-2xl border border-border p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
               <Bell className="w-5 h-5 text-accent" />
@@ -320,64 +334,6 @@ const StudentSettings: React.FC = () => {
               <Save size={18} />
               Enregistrer les préférences
             </button>
-          </div>
-        </div>
-
-        {/* Appearance section */}
-        <div className="bg-white rounded-2xl border border-border p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-benin-yellow/10 rounded-xl flex items-center justify-center">
-              <Sun className="w-5 h-5 text-benin-yellow" />
-            </div>
-            <div>
-              <h2 className="font-bold text-text">Apparence</h2>
-              <p className="text-sm text-text-secondary">Personnalisez l'interface</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {/* Theme selection */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-3">Thème</label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { value: 'light', icon: Sun, label: 'Clair' },
-                  { value: 'dark', icon: Moon, label: 'Sombre' },
-                  { value: 'system', icon: Smartphone, label: 'Système' },
-                ].map(({ value, icon: Icon, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => setTheme(value as typeof theme)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                      theme === value
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/30'
-                    }`}
-                  >
-                    <Icon size={24} className={theme === value ? 'text-primary' : 'text-text-muted'} />
-                    <span className={`text-sm font-medium ${theme === value ? 'text-primary' : 'text-text'}`}>
-                      {label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Language selection */}
-            <div>
-              <label className="block text-sm font-medium text-text-secondary mb-2">Langue</label>
-              <div className="relative">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
-                <select
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-background border border-border rounded-xl text-text focus:outline-none focus:border-primary appearance-none"
-                >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-            </div>
           </div>
         </div>
 

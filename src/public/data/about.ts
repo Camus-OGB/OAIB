@@ -11,4 +11,4 @@ export const teamMembers = [
   { name: "Elise Biaou", role: "Partnership Manager", desc: "Lien talents locaux et institutions.", img: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=75" }
 ];
 
-export const partners = ["MINISTRY OF TECH", "UNESCO BENIN", "TECH CORP AI", "UAC BENIN"];
+

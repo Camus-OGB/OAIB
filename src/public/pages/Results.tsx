@@ -1,8 +1,10 @@
-import React from 'react';
-import { Download, TrendingUp, Play, FileText, ArrowUpRight, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, TrendingUp, Play, FileText, ArrowUpRight, MapPin, Rocket } from 'lucide-react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { usePageTitle } from '../../shared/hooks/usePageTitle';
-import { chartData, regionData, timelineItems, innovations, galleryImages, documents } from '../data/results';
+import { chartData, regionData, innovations, galleryImages, documents } from '../data/results';
+import { listEditionsPublic } from '../../services/examService';
+import type { Edition } from '../../shared/types';
 import { AnimatedSection, AnimatedCard } from '../../shared/components/layout/AnimatedSection';
 import { OptimizedImage } from '../../shared/components/ui/OptimizedImage';
 import { MatrixGridPattern, BinaryRainPattern, ConstellationPattern, HexagonPattern, CircuitPattern } from '../../shared/components/patterns/AIPatterns';
@@ -10,10 +12,43 @@ import { MatrixGridPattern, BinaryRainPattern, ConstellationPattern, HexagonPatt
 const Results: React.FC = () => {
   usePageTitle('Resultats');
 
+  const [editions, setEditions] = useState<Edition[]>([]);
+
+  useEffect(() => {
+    listEditionsPublic('ordering=year')
+      .then(r => { if (r.data) setEditions(r.data.results ?? []); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="w-full bg-background relative">
       {/* Hero - Tech & Data Driven */}
       <section className="relative min-h-[80vh] flex items-center overflow-hidden">
+        {/* Binary matrix overlay - digital effect */}
+        <div className="absolute inset-0 opacity-[0.04] pointer-events-none font-mono text-[10px] text-white leading-relaxed select-none overflow-hidden z-10">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div key={i} className="whitespace-nowrap animate-pulse" style={{ animationDelay: `${i * 0.1}s`, animationDuration: '3.5s' }}>
+              {Array.from({ length: 200 }).map(() => Math.random() > 0.5 ? '1' : '0').join(' ')}
+            </div>
+          ))}
+        </div>
+
+        {/* Circuit pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.025] pointer-events-none z-10">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="results-circuit" x="0" y="0" width="115" height="115" patternUnits="userSpaceOnUse">
+                <circle cx="57" cy="57" r="3" fill="currentColor" className="text-accent" />
+                <line x1="57" y1="57" x2="115" y2="57" stroke="currentColor" strokeWidth="0.8" className="text-white" />
+                <line x1="57" y1="57" x2="57" y2="0" stroke="currentColor" strokeWidth="0.8" className="text-accent" />
+                <circle cx="0" cy="57" r="2" fill="currentColor" className="text-white" />
+                <circle cx="57" cy="0" r="2" fill="currentColor" className="text-accent" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#results-circuit)" />
+          </svg>
+        </div>
+
         {/* Background with tech overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-dark via-primary-dark to-primary">
           <img 
@@ -27,22 +62,22 @@ const Results: React.FC = () => {
         <MatrixGridPattern className="w-full h-[350px] text-pattern absolute bottom-0 left-0 opacity-60" />
         <ConstellationPattern className="w-[450px] h-[450px] text-pattern absolute top-5 right-10 opacity-50" />
         <CircuitPattern className="w-[320px] h-[320px] text-pattern absolute top-[40%] left-10 opacity-40" />
-        {/* Benin flag colors - vibrant */}
-        <div className="absolute top-[25%] right-[12%] w-[250px] h-[250px] bg-benin-yellow/18 rounded-full blur-[85px]" />
-        <div className="absolute bottom-[35%] left-[15%] w-[180px] h-[180px] bg-benin-red/15 rounded-full blur-[70px]" />
-        <div className="absolute top-[55%] right-[35%] w-[130px] h-[130px] bg-benin-green/12 rounded-full blur-[60px]" />
-        {/* Tricolor line - diagonal accent */}
-        <div className="absolute bottom-0 right-0 top-0 w-1 flex flex-col">
-          <div className="flex-1 bg-benin-green/40" />
-          <div className="flex-1 bg-benin-yellow/45" />
-          <div className="flex-1 bg-benin-red/40" />
+        {/* Benin flag colors - Plus visibles */}
+        <div className="absolute top-[25%] right-[12%] w-[320px] h-[320px] bg-benin-yellow/32 rounded-full blur-[90px]" />
+        <div className="absolute bottom-[35%] left-[15%] w-[250px] h-[250px] bg-benin-red/28 rounded-full blur-[75px]" />
+        <div className="absolute top-[55%] right-[35%] w-[200px] h-[200px] bg-benin-green/25 rounded-full blur-[65px]" />
+        {/* Tricolor line - Plus visible */}
+        <div className="absolute bottom-0 right-0 top-0 w-2 flex flex-col">
+          <div className="flex-1 bg-benin-green/55" />
+          <div className="flex-1 bg-benin-yellow/65" />
+          <div className="flex-1 bg-benin-red/55" />
         </div>
         
         <div className="relative z-10 px-6 sm:px-10 md:px-16 lg:px-20 py-20">
           <div className="max-w-6xl mx-auto">
             <div className="max-w-2xl">
               <AnimatedSection>
-                <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-8">
+                <span className="inline-block px-4 py-1.5 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-full mb-8">
                   Bilan 2022 - 2025
                 </span>
                 <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8">
@@ -85,7 +120,7 @@ const Results: React.FC = () => {
             <div className="bg-white rounded-3xl border border-border p-8 md:p-12 shadow-xl">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
                 <h2 className="text-text text-2xl font-black">Evolution des Editions</h2>
-                <button className="flex items-center gap-2 px-5 py-2.5 bg-background rounded-xl text-sm font-bold text-text-secondary hover:bg-primary hover:text-white transition-all">
+                <button className="flex items-center gap-2 px-5 py-2.5 bg-background rounded-xl text-sm font-bold text-text-secondary hover:bg-gradient-to-r hover:from-primary hover:via-accent hover:to-blue hover:text-white transition-all">
                   <Download size={16} />
                   Rapport PDF
                 </button>
@@ -95,15 +130,15 @@ const Results: React.FC = () => {
               <div className="relative">
                 <div className="hidden md:block absolute top-6 left-0 right-0 h-1 bg-border" />
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                  {timelineItems.map((item, idx) => (
-                    <div key={idx} className="relative flex flex-col items-center text-center group">
-                      <div className={`relative z-10 size-12 rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${item.active ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'bg-background text-text-secondary group-hover:bg-primary/20 group-hover:text-primary'}`}>
-                        <item.icon size={20} />
+                  {editions.map((edition, idx) => (
+                    <div key={edition.id} className="relative flex flex-col items-center text-center group">
+                      <div className={`relative z-10 size-12 rounded-full flex items-center justify-center mb-6 transition-all duration-300 ${edition.is_active ? 'bg-primary text-white scale-110 shadow-lg shadow-primary/30' : 'bg-background text-text-secondary group-hover:bg-primary/20 group-hover:text-primary'}`}>
+                        <Rocket size={20} />
                       </div>
-                      <h3 className={`font-bold text-lg mb-2 ${item.active ? 'text-primary' : 'text-text'}`}>{item.title}</h3>
-                      <p className="text-sm text-text-secondary mb-2">{item.desc}</p>
-                      <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${item.active ? 'bg-accent/10 text-accent' : 'bg-background text-text-muted'}`}>
-                        {item.status}
+                      <h3 className={`font-bold text-lg mb-2 ${edition.is_active ? 'text-primary' : 'text-text'}`}>{edition.year} {edition.title}</h3>
+                      <p className="text-sm text-text-secondary mb-2">{edition.description}</p>
+                      <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full ${edition.is_active ? 'bg-accent/10 text-accent' : 'bg-background text-text-muted'}`}>
+                        {edition.is_active ? 'Active' : 'Terminée'}
                       </span>
                     </div>
                   ))}
@@ -160,7 +195,7 @@ const Results: React.FC = () => {
                         <span className="text-text-secondary">{region.count} participants</span>
                       </div>
                       <div className="h-2.5 w-full bg-background-alt rounded-full overflow-hidden" role="progressbar" aria-valuenow={region.count} aria-label={`${region.name}: ${region.count} participants`}>
-                        <div className="h-full bg-primary rounded-full transition-all duration-700" style={{ width: region.width }} />
+                        <div className="h-full bg-gradient-to-r from-primary via-accent to-blue rounded-full transition-all duration-700" style={{ width: region.width }} />
                       </div>
                     </div>
                   ))}
@@ -244,7 +279,7 @@ const Results: React.FC = () => {
                 <div className={`group relative overflow-hidden rounded-2xl cursor-pointer ${i === 0 ? 'md:col-span-2 md:row-span-2 aspect-square' : i === 3 ? 'md:col-span-2 aspect-video' : 'aspect-square'}`}>
                   <OptimizedImage src={src} alt={`Album des Olympiades ${2021 + i}`} className="h-full group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-primary/0 group-hover:bg-primary/60 transition-all duration-500 flex items-center justify-center">
-                    <span className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-accent text-primary px-4 py-2 rounded-lg text-sm">
+                    <span className="text-white font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-accent px-4 py-2 rounded-lg text-sm">
                       Edition {2021 + i}
                     </span>
                   </div>
@@ -288,7 +323,7 @@ const Results: React.FC = () => {
                     <div className="md:w-72 lg:w-96 h-48 md:h-auto overflow-hidden relative shrink-0">
                       <OptimizedImage src={item.image} alt={item.title} className="h-full group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="bg-accent text-primary p-2 rounded-lg">
+                        <div className="bg-accent text-white p-2 rounded-lg">
                           <item.icon size={18} />
                         </div>
                         <span className="bg-black/50 backdrop-blur-sm text-white font-bold text-xs px-3 py-1.5 rounded-lg">{item.category}</span>

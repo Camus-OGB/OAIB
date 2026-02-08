@@ -9,7 +9,7 @@ const Legal: React.FC = () => {
   return (
     <div className="w-full bg-background min-h-screen">
       {/* Hero */}
-      <section className="relative px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-primary overflow-hidden">
+      <section className="relative px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-gradient-to-br from-primary via-accent to-blue overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <img 
             src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
@@ -21,9 +21,9 @@ const Legal: React.FC = () => {
           <AnimatedSection>
             <div className="flex items-center gap-3 mb-6">
               <div className="p-3 bg-accent rounded-xl">
-                <Scale className="w-8 h-8 text-primary" />
+                <Scale className="w-8 h-8 text-white" />
               </div>
-              <span className="px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full">
+              <span className="px-4 py-1.5 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-full">
                 Informations Légales
               </span>
             </div>

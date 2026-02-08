@@ -1,20 +1,63 @@
-import React, { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, UserPlus, BookOpen, Terminal, MapPin, Trophy, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePageTitle } from '../../shared/hooks/usePageTitle';
-import { phases, criteria, faqItems } from '../data/program';
+import { criteria } from '../data/program';
+import { listPhasesPublic } from '../../services/examService';
+import { listFAQ } from '../../services/cmsService';
+import type { Phase, FAQItem } from '../../shared/types';
 import { AnimatedSection, AnimatedCard } from '../../shared/components/layout/AnimatedSection';
 import { OptimizedImage } from '../../shared/components/ui/OptimizedImage';
 import { CircuitPattern, DataFlowPattern, HexagonPattern } from '../../shared/components/patterns/AIPatterns';
+
+const phaseIcons = [UserPlus, BookOpen, Terminal, MapPin, Trophy, Users];
 
 const Program: React.FC = () => {
   usePageTitle('Programme');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
+  // ── API state ──────────────────────────────────────────────
+  const [phases, setPhases] = useState<Phase[]>([]);
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
+
+  useEffect(() => {
+    listPhasesPublic('ordering=phase_number')
+      .then(r => { if (r.data) setPhases(r.data.results ?? []); })
+      .catch(() => {});
+    listFAQ('is_active=true&ordering=display_order')
+      .then(r => { if (r.data) setFaqItems(r.data.results ?? []); })
+      .catch(() => {});
+  }, []);
+
   return (
     <div className="w-full bg-background relative">
       {/* Hero - Dynamic & Bold */}
       <section className="relative min-h-[75vh] flex items-center overflow-hidden">
+        {/* Binary matrix overlay - digital effect */}
+        <div className="absolute inset-0 opacity-[0.035] pointer-events-none font-mono text-[10px] text-white leading-relaxed select-none overflow-hidden z-10">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <div key={i} className="whitespace-nowrap animate-pulse" style={{ animationDelay: `${i * 0.12}s`, animationDuration: '3.2s' }}>
+              {Array.from({ length: 160 }).map(() => Math.random() > 0.5 ? '1' : '0').join(' ')}
+            </div>
+          ))}
+        </div>
+
+        {/* Circuit pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-10">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="program-circuit" x="0" y="0" width="105" height="105" patternUnits="userSpaceOnUse">
+                <circle cx="52" cy="52" r="2.5" fill="currentColor" className="text-white" />
+                <line x1="52" y1="52" x2="105" y2="52" stroke="currentColor" strokeWidth="0.7" className="text-benin-yellow" />
+                <line x1="52" y1="52" x2="52" y2="0" stroke="currentColor" strokeWidth="0.7" className="text-white" />
+                <circle cx="0" cy="52" r="2" fill="currentColor" className="text-white" />
+                <circle cx="52" cy="0" r="2" fill="currentColor" className="text-benin-yellow" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#program-circuit)" />
+          </svg>
+        </div>
+
         {/* Background Image with strong overlay */}
         <div className="absolute inset-0">
           <img 
@@ -29,15 +72,15 @@ const Program: React.FC = () => {
         <CircuitPattern className="w-[550px] h-[550px] text-pattern absolute top-0 right-0 opacity-55" />
         <DataFlowPattern className="w-[280px] h-[650px] text-pattern absolute bottom-0 left-10 opacity-50" />
         <HexagonPattern className="w-[350px] h-[350px] text-pattern absolute top-[30%] left-[35%] opacity-35" />
-        {/* Benin flag colors */}
-        <div className="absolute top-[35%] right-[8%] w-[200px] h-[200px] bg-benin-yellow/20 rounded-full blur-[75px]" />
-        <div className="absolute bottom-[15%] left-[20%] w-[160px] h-[160px] bg-benin-green/15 rounded-full blur-[65px]" />
-        <div className="absolute top-[15%] left-[10%] w-[120px] h-[120px] bg-benin-red/12 rounded-full blur-[55px]" />
-        {/* Tricolor line */}
-        <div className="absolute top-0 bottom-0 left-0 w-1 flex flex-col">
-          <div className="flex-1 bg-benin-green/35" />
-          <div className="flex-1 bg-benin-yellow/40" />
-          <div className="flex-1 bg-benin-red/35" />
+        {/* Benin flag colors - Plus visibles */}
+        <div className="absolute top-[35%] right-[8%] w-[280px] h-[280px] bg-benin-yellow/35 rounded-full blur-[80px]" />
+        <div className="absolute bottom-[15%] left-[20%] w-[220px] h-[220px] bg-benin-green/28 rounded-full blur-[70px]" />
+        <div className="absolute top-[15%] left-[10%] w-[180px] h-[180px] bg-benin-red/25 rounded-full blur-[60px]" />
+        {/* Tricolor line - Plus visible */}
+        <div className="absolute top-0 bottom-0 left-0 w-2 flex flex-col">
+          <div className="flex-1 bg-benin-green/50" />
+          <div className="flex-1 bg-benin-yellow/60" />
+          <div className="flex-1 bg-benin-red/50" />
         </div>
         
         {/* Content */}
@@ -45,7 +88,7 @@ const Program: React.FC = () => {
           <div className="max-w-6xl mx-auto">
             <div className="max-w-2xl">
               <AnimatedSection>
-                <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-6">
+                <span className="inline-block px-4 py-1.5 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-full mb-6">
                   Edition 2026
                 </span>
                 <h1 className="text-white text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8">
@@ -56,7 +99,7 @@ const Program: React.FC = () => {
                   Six etapes pour transformer votre passion en expertise. Rejoignez les futurs leaders de l'intelligence artificielle au Benin.
                 </p>
               <div className="flex flex-wrap gap-4">
-                <button className="bg-accent hover:bg-accent-light text-primary h-14 px-8 rounded-full font-bold text-base transition-all">
+                <button className="bg-accent hover:bg-accent-light text-white h-14 px-8 rounded-full font-bold text-base transition-all">
                   Commencer l'inscription
                 </button>
                 <button className="border border-white/20 hover:border-accent hover:bg-white/5 text-white h-14 px-8 rounded-full font-bold text-base transition-all backdrop-blur-sm">
@@ -82,9 +125,9 @@ const Program: React.FC = () => {
         {/* Pattern subtil */}
         <HexagonPattern className="w-[450px] h-[450px] text-pattern absolute top-20 right-0 opacity-35" />
         <CircuitPattern className="w-[300px] h-[300px] text-pattern absolute bottom-10 left-10 opacity-25" />
-        {/* Benin accents */}
-        <div className="absolute top-[30%] left-[5%] w-[100px] h-[100px] bg-benin-yellow/10 rounded-full blur-[50px]" />
-        <div className="absolute bottom-[40%] right-[10%] w-[80px] h-[80px] bg-benin-red/8 rounded-full blur-[40px]" />
+        {/* Benin accents - Plus visibles */}
+        <div className="absolute top-[30%] left-[5%] w-[180px] h-[180px] bg-benin-yellow/22 rounded-full blur-[60px]" />
+        <div className="absolute bottom-[40%] right-[10%] w-[140px] h-[140px] bg-benin-red/18 rounded-full blur-[50px]" />
         
         <div className="max-w-6xl mx-auto">
           <AnimatedSection className="text-center mb-16">
@@ -99,18 +142,21 @@ const Program: React.FC = () => {
             
             <div className="space-y-8 lg:space-y-0">
               {phases.map((item, idx) => (
-                <AnimatedCard key={idx} delay={idx * 0.1}>
+                <AnimatedCard key={item.id} delay={idx * 0.1}>
                   <div className={`lg:grid lg:grid-cols-2 lg:gap-16 items-center ${idx % 2 === 0 ? '' : 'lg:flex-row-reverse'}`}>
                     {/* Content side */}
                     <div className={`${idx % 2 === 0 ? 'lg:text-right lg:pr-16' : 'lg:order-2 lg:pl-16'} mb-6 lg:mb-0`}>
                       <div className={`p-8 bg-white border border-border rounded-2xl hover:border-primary/30 hover:shadow-lg transition-all ${idx % 2 === 0 ? 'lg:ml-auto' : ''} max-w-md ${idx % 2 === 0 ? 'lg:ml-auto' : 'lg:mr-auto'}`}>
-                        <span className={`${idx === 0 ? 'text-primary bg-accent' : 'text-text-secondary bg-background-alt'} font-bold text-xs uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-4`}>
-                          {item.phase}
+                        <span className={`${idx === 0 ? 'text-white bg-accent' : 'text-text-secondary bg-background-alt'} font-bold text-xs uppercase tracking-widest px-3 py-1 rounded-full inline-block mb-4`}>
+                          Phase {String(item.phase_number).padStart(2, '0')}
                         </span>
                         <h3 className="text-text text-xl font-bold mb-3">{item.title}</h3>
-                        <p className="text-text-secondary mb-4">{item.desc}</p>
-                        {item.date && (
-                          <div className="text-sm font-bold text-accent">{item.date}</div>
+                        <p className="text-text-secondary mb-4">{item.description}</p>
+                        {(item.start_date || item.end_date) && (
+                          <div className="text-sm font-bold text-accent">
+                            {item.start_date ? new Date(item.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : ''} 
+                            {item.end_date ? ` - ${new Date(item.end_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -118,9 +164,11 @@ const Program: React.FC = () => {
                     {/* Center icon (visible only on lg) */}
                     <div className={`hidden lg:flex items-center justify-center ${idx % 2 === 0 ? 'lg:order-2' : 'lg:order-1'}`}>
                       <div className="absolute left-1/2 -translate-x-1/2">
+                        {(() => { const Icon = phaseIcons[idx] || phaseIcons[0]; return (
                         <div className={`size-14 rounded-full flex items-center justify-center border-4 border-background ${idx === 0 ? 'bg-primary text-white' : 'bg-white text-primary border-2 border-primary/30'}`}>
-                          <item.icon size={24} />
+                          <Icon size={24} />
                         </div>
+                        ); })()}
                       </div>
                     </div>
                   </div>
@@ -177,7 +225,7 @@ const Program: React.FC = () => {
           <AnimatedSection className="mt-12 text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-white rounded-2xl border border-border shadow-sm">
               <p className="text-text font-bold">Ajoutez ces dates a votre calendrier</p>
-              <button className="px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-light transition-all">
+              <button className="px-6 py-3 bg-gradient-to-r from-primary via-accent to-blue text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all">
                 Telecharger (.ics)
               </button>
             </div>
@@ -247,7 +295,7 @@ const Program: React.FC = () => {
             {/* Right - FAQ items */}
             <div className="lg:col-span-3 space-y-4" role="region" aria-label="Questions frequemment posees">
               {faqItems.map((faq, i) => (
-                <AnimatedCard key={i} delay={i * 0.05}>
+                <AnimatedCard key={faq.id} delay={i * 0.05}>
                   <div className="bg-background border border-border rounded-2xl overflow-hidden hover:border-primary/30 transition-all">
                     <button
                       className="flex items-center justify-between w-full p-6 text-left font-bold text-lg text-text focus:outline-none"
@@ -255,7 +303,7 @@ const Program: React.FC = () => {
                       aria-expanded={openFaq === i}
                       aria-controls={`faq-answer-${i}`}
                     >
-                      {faq.q}
+                      {faq.question}
                       <ChevronDown className={`transition-transform text-text-secondary shrink-0 ml-4 ${openFaq === i ? 'rotate-180 text-accent' : ''}`} size={20} />
                     </button>
                     <AnimatePresence>
@@ -268,7 +316,7 @@ const Program: React.FC = () => {
                           transition={{ duration: 0.3 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-6 pb-6 text-text-secondary">{faq.a}</div>
+                          <div className="px-6 pb-6 text-text-secondary">{faq.answer}</div>
                         </motion.div>
                       )}
                     </AnimatePresence>

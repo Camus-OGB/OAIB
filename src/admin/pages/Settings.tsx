@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Settings,
   Bell,
   Mail,
   Shield,
   Globe,
-  Palette,
   Database,
   Users,
   Clock,
@@ -17,8 +16,12 @@ import {
   Plus,
   Trash2,
   Edit2,
-  Key
+  Key,
+  Loader2
 } from 'lucide-react';
+import type { PlatformSettings, AdminUser } from '../../shared/types';
+import { getSettings, updateSettings } from '../../services/settingsService';
+import { listUsers, createUser, deleteUser } from '../../services/userService';
 
 interface NotificationSetting {
   id: string;
@@ -27,29 +30,6 @@ interface NotificationSetting {
   email: boolean;
   push: boolean;
 }
-
-interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'admin' | 'moderator';
-  lastLogin: string;
-  status: 'active' | 'inactive';
-}
-
-const mockNotifications: NotificationSetting[] = [
-  { id: '1', label: 'Nouvelle inscription', description: 'Quand un candidat s\'inscrit', email: true, push: true },
-  { id: '2', label: 'Dossier complet', description: 'Quand un dossier est prêt à valider', email: true, push: false },
-  { id: '3', label: 'QCM terminé', description: 'Quand un candidat termine son QCM', email: false, push: true },
-  { id: '4', label: 'Rapport hebdomadaire', description: 'Résumé des statistiques de la semaine', email: true, push: false },
-];
-
-const mockAdmins: AdminUser[] = [
-  { id: '1', name: 'Admin Principal', email: 'admin@oaib.bj', role: 'super_admin', lastLogin: '2026-01-30 14:30', status: 'active' },
-  { id: '2', name: 'Jean Koffi', email: 'jean.koffi@oaib.bj', role: 'admin', lastLogin: '2026-01-30 10:15', status: 'active' },
-  { id: '3', name: 'Marie Dossou', email: 'marie.dossou@oaib.bj', role: 'moderator', lastLogin: '2026-01-28 16:45', status: 'active' },
-  { id: '4', name: 'Paul Houénou', email: 'paul.h@oaib.bj', role: 'moderator', lastLogin: '2026-01-20 09:00', status: 'inactive' },
-];
 
 type SettingsTab = 'general' | 'notifications' | 'security' | 'users' | 'maintenance';
 
@@ -61,41 +41,104 @@ const tabs = [
   { id: 'maintenance', label: 'Maintenance', icon: Database },
 ];
 
-const roleConfig = {
-  super_admin: { label: 'Super Admin', className: 'bg-red-500/10 text-red-400' },
+const roleConfig: Record<string, { label: string; className: string }> = {
   admin: { label: 'Admin', className: 'bg-blue-500/10 text-blue-400' },
   moderator: { label: 'Modérateur', className: 'bg-green-500/10 text-green-400' },
+  student: { label: 'Étudiant', className: 'bg-purple-500/10 text-purple-400' },
 };
+
+const defaultNotifications: NotificationSetting[] = [
+  { id: '1', label: 'Nouvelle inscription', description: 'Quand un candidat s\'inscrit', email: true, push: true },
+  { id: '2', label: 'Dossier complet', description: 'Quand un dossier est prêt à valider', email: true, push: false },
+  { id: '3', label: 'QCM terminé', description: 'Quand un candidat termine son QCM', email: false, push: true },
+  { id: '4', label: 'Rapport hebdomadaire', description: 'Résumé des statistiques de la semaine', email: true, push: false },
+];
 
 const AdminSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-  const [notifications, setNotifications] = useState<NotificationSetting[]>(mockNotifications);
-  const [admins] = useState<AdminUser[]>(mockAdmins);
+  const [notifications, setNotifications] = useState<NotificationSetting[]>(defaultNotifications);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [savingUser, setSavingUser] = useState(false);
 
-  // General settings
+  // Form for user modal
+  const [userFormName, setUserFormName] = useState('');
+  const [userFormLastName, setUserFormLastName] = useState('');
+  const [userFormEmail, setUserFormEmail] = useState('');
+  const [userFormRole, setUserFormRole] = useState<string>('moderator');
+  const [userFormPassword, setUserFormPassword] = useState('');
+
+  // General settings — mapped from PlatformSettings
   const [generalSettings, setGeneralSettings] = useState({
-    siteName: 'OAIB - Olympiades d\'IA du Bénin',
-    siteDescription: 'Compétition nationale d\'Intelligence Artificielle',
-    contactEmail: 'contact@oaib.bj',
-    supportEmail: 'support@oaib.bj',
-    maxFileSize: 10, // MB
-    allowedFileTypes: 'pdf,jpg,png',
-    registrationOpen: true,
-    maintenanceMode: false,
+    site_name: 'OAIB - Olympiades d\'IA du Bénin',
+    site_description: 'Compétition nationale d\'Intelligence Artificielle',
+    contact_email: 'contact@oaib.bj',
+    support_email: 'support@oaib.bj',
+    max_file_size_mb: 10,
+    allowed_file_types: 'pdf,jpg,png',
+    registration_open: true,
+    maintenance_mode: false,
   });
 
-  // Security settings
+  // Security settings (stored in PlatformSettings.security_settings)
   const [securitySettings, setSecuritySettings] = useState({
     twoFactorRequired: false,
-    sessionTimeout: 30, // minutes
+    sessionTimeout: 30,
     maxLoginAttempts: 5,
     passwordMinLength: 8,
     requireSpecialChar: true,
     requireNumber: true,
   });
+
+  // ── Load settings from API ──────────────────────────────
+  const fetchSettings = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getSettings();
+      const data = res.data;
+      if (!data) { setLoading(false); return; }
+      setGeneralSettings({
+        site_name: data.site_name || '',
+        site_description: data.site_description || '',
+        contact_email: data.contact_email || '',
+        support_email: data.support_email || '',
+        max_file_size_mb: data.max_file_size_mb ?? 10,
+        allowed_file_types: Array.isArray(data.allowed_file_types) ? data.allowed_file_types.join(',') : 'pdf,jpg,png',
+        registration_open: data.registration_open ?? true,
+        maintenance_mode: data.maintenance_mode ?? false,
+      });
+      if (data.security_settings && typeof data.security_settings === 'object') {
+        const sec = data.security_settings as Record<string, unknown>;
+        setSecuritySettings(prev => ({
+          twoFactorRequired: (sec.twoFactorRequired as boolean) ?? prev.twoFactorRequired,
+          sessionTimeout: (sec.sessionTimeout as number) ?? prev.sessionTimeout,
+          maxLoginAttempts: (sec.maxLoginAttempts as number) ?? prev.maxLoginAttempts,
+          passwordMinLength: (sec.passwordMinLength as number) ?? prev.passwordMinLength,
+          requireSpecialChar: (sec.requireSpecialChar as boolean) ?? prev.requireSpecialChar,
+          requireNumber: (sec.requireNumber as boolean) ?? prev.requireNumber,
+        }));
+      }
+    } catch (err) {
+      console.error('Erreur chargement paramètres:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchAdmins = useCallback(async () => {
+    try {
+      const res = await listUsers('role=admin&role=moderator');
+      setAdmins((res.data?.results || []) as AdminUser[]);
+    } catch (err) {
+      console.error('Erreur chargement admins:', err);
+    }
+  }, []);
+
+  useEffect(() => { fetchSettings(); }, [fetchSettings]);
+  useEffect(() => { if (activeTab === 'users') fetchAdmins(); }, [activeTab, fetchAdmins]);
 
   const handleNotificationToggle = (id: string, type: 'email' | 'push') => {
     setNotifications(prev => prev.map(n => 
@@ -105,10 +148,67 @@ const AdminSettings: React.FC = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    alert('Paramètres enregistrés avec succès');
+    try {
+      const fileTypes = generalSettings.allowed_file_types.split(',').map(t => t.trim()).filter(Boolean);
+      await updateSettings({
+        site_name: generalSettings.site_name,
+        site_description: generalSettings.site_description,
+        contact_email: generalSettings.contact_email,
+        support_email: generalSettings.support_email,
+        max_file_size_mb: generalSettings.max_file_size_mb,
+        allowed_file_types: fileTypes,
+        registration_open: generalSettings.registration_open,
+        maintenance_mode: generalSettings.maintenance_mode,
+        security_settings: securitySettings,
+      });
+      alert('Paramètres enregistrés avec succès');
+    } catch (err) {
+      console.error('Erreur sauvegarde:', err);
+      alert('Erreur lors de la sauvegarde');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openUserModal = (user?: AdminUser) => {
+    setEditingUser(user || null);
+    setUserFormName(user?.first_name || '');
+    setUserFormLastName(user?.last_name || '');
+    setUserFormEmail(user?.email || '');
+    setUserFormRole(user?.role || 'moderator');
+    setUserFormPassword('');
+    setShowUserModal(true);
+  };
+
+  const handleSaveUser = async () => {
+    setSavingUser(true);
+    try {
+      if (!editingUser) {
+        await createUser({
+          email: userFormEmail,
+          first_name: userFormName,
+          last_name: userFormLastName,
+          role: userFormRole as 'admin' | 'moderator',
+          password: userFormPassword,
+        });
+      }
+      setShowUserModal(false);
+      fetchAdmins();
+    } catch (err) {
+      console.error('Erreur sauvegarde utilisateur:', err);
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm('Supprimer cet administrateur ?')) return;
+    try {
+      await deleteUser(id);
+      fetchAdmins();
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+    }
   };
 
   return (
@@ -122,7 +222,7 @@ const AdminSettings: React.FC = () => {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="flex items-center gap-2 px-4 py-2.5 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
         >
           {isSaving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
           Enregistrer
@@ -138,7 +238,7 @@ const AdminSettings: React.FC = () => {
               onClick={() => setActiveTab(tab.id as SettingsTab)}
               className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-accent text-primary'
+                  ? 'bg-accent text-white'
                   : 'text-slate-400 hover:bg-slate-700 hover:text-white'
               }`}
             >
@@ -152,6 +252,9 @@ const AdminSettings: React.FC = () => {
       {/* General Tab */}
       {activeTab === 'general' && (
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 space-y-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 text-accent animate-spin" /></div>
+          ) : (<>
           <h3 className="text-white font-bold text-lg">Paramètres généraux</h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -159,8 +262,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Nom du site</label>
               <input
                 type="text"
-                value={generalSettings.siteName}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, siteName: e.target.value })}
+                value={generalSettings.site_name}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, site_name: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -168,8 +271,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Description</label>
               <input
                 type="text"
-                value={generalSettings.siteDescription}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, siteDescription: e.target.value })}
+                value={generalSettings.site_description}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, site_description: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -177,8 +280,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Email de contact</label>
               <input
                 type="email"
-                value={generalSettings.contactEmail}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, contactEmail: e.target.value })}
+                value={generalSettings.contact_email}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, contact_email: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -186,8 +289,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Email support</label>
               <input
                 type="email"
-                value={generalSettings.supportEmail}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, supportEmail: e.target.value })}
+                value={generalSettings.support_email}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, support_email: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -195,8 +298,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Taille max fichier (MB)</label>
               <input
                 type="number"
-                value={generalSettings.maxFileSize}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, maxFileSize: parseInt(e.target.value) })}
+                value={generalSettings.max_file_size_mb}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, max_file_size_mb: parseInt(e.target.value) })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -204,8 +307,8 @@ const AdminSettings: React.FC = () => {
               <label className="block text-slate-300 font-medium mb-2">Types de fichiers autorisés</label>
               <input
                 type="text"
-                value={generalSettings.allowedFileTypes}
-                onChange={(e) => setGeneralSettings({ ...generalSettings, allowedFileTypes: e.target.value })}
+                value={generalSettings.allowed_file_types}
+                onChange={(e) => setGeneralSettings({ ...generalSettings, allowed_file_types: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
               />
             </div>
@@ -218,13 +321,13 @@ const AdminSettings: React.FC = () => {
                 <p className="text-slate-400 text-sm">Autoriser les nouvelles inscriptions</p>
               </div>
               <button
-                onClick={() => setGeneralSettings({ ...generalSettings, registrationOpen: !generalSettings.registrationOpen })}
+                onClick={() => setGeneralSettings({ ...generalSettings, registration_open: !generalSettings.registration_open })}
                 className={`w-14 h-7 rounded-full transition-colors ${
-                  generalSettings.registrationOpen ? 'bg-green-500' : 'bg-slate-600'
+                  generalSettings.registration_open ? 'bg-green-500' : 'bg-slate-600'
                 }`}
               >
                 <span className={`block w-5 h-5 bg-white rounded-full transition-transform mx-1 ${
-                  generalSettings.registrationOpen ? 'translate-x-7' : 'translate-x-0'
+                  generalSettings.registration_open ? 'translate-x-7' : 'translate-x-0'
                 }`} />
               </button>
             </div>
@@ -238,17 +341,18 @@ const AdminSettings: React.FC = () => {
                 <p className="text-slate-400 text-sm">Rendre le site inaccessible temporairement</p>
               </div>
               <button
-                onClick={() => setGeneralSettings({ ...generalSettings, maintenanceMode: !generalSettings.maintenanceMode })}
+                onClick={() => setGeneralSettings({ ...generalSettings, maintenance_mode: !generalSettings.maintenance_mode })}
                 className={`w-14 h-7 rounded-full transition-colors ${
-                  generalSettings.maintenanceMode ? 'bg-red-500' : 'bg-slate-600'
+                  generalSettings.maintenance_mode ? 'bg-red-500' : 'bg-slate-600'
                 }`}
               >
                 <span className={`block w-5 h-5 bg-white rounded-full transition-transform mx-1 ${
-                  generalSettings.maintenanceMode ? 'translate-x-7' : 'translate-x-0'
+                  generalSettings.maintenance_mode ? 'translate-x-7' : 'translate-x-0'
                 }`} />
               </button>
             </div>
           </div>
+          </>)}
         </div>
       )}
 
@@ -405,13 +509,18 @@ const AdminSettings: React.FC = () => {
           <div className="p-6 border-b border-slate-700 flex items-center justify-between">
             <h3 className="text-white font-bold text-lg">Administrateurs</h3>
             <button
-              onClick={() => { setEditingUser(null); setShowUserModal(true); }}
-              className="flex items-center gap-2 px-4 py-2 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors"
+              onClick={() => openUserModal()}
+              className="flex items-center gap-2 px-4 py-2 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors"
             >
               <Plus size={18} />
               Ajouter
             </button>
           </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-16"><Loader2 className="w-8 h-8 text-accent animate-spin" /></div>
+          ) : admins.length === 0 ? (
+            <div className="text-center py-16 text-slate-400">Aucun administrateur trouvé</div>
+          ) : (
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-700">
@@ -423,39 +532,46 @@ const AdminSettings: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {admins.map((admin) => (
+              {admins.map((admin) => {
+                const fullName = `${admin.first_name} ${admin.last_name}`.trim() || admin.email;
+                const initials = admin.first_name && admin.last_name
+                  ? `${admin.first_name[0]}${admin.last_name[0]}`
+                  : admin.email[0]?.toUpperCase() || '?';
+                return (
                 <tr key={admin.id} className="hover:bg-slate-700/50 transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold">
-                        {admin.name.split(' ').map(n => n[0]).join('')}
+                        {initials}
                       </div>
                       <div>
-                        <p className="text-white font-medium">{admin.name}</p>
+                        <p className="text-white font-medium">{fullName}</p>
                         <p className="text-slate-400 text-sm">{admin.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${roleConfig[admin.role].className}`}>
-                      {roleConfig[admin.role].label}
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${roleConfig[admin.role]?.className || 'bg-slate-600 text-slate-300'}`}>
+                      {roleConfig[admin.role]?.label || admin.role}
                     </span>
                   </td>
-                  <td className="py-4 px-6 text-slate-400 text-sm">{admin.lastLogin}</td>
+                  <td className="py-4 px-6 text-slate-400 text-sm">
+                    {admin.last_login ? new Date(admin.last_login).toLocaleString('fr-FR') : 'Jamais'}
+                  </td>
                   <td className="py-4 px-6">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
-                      admin.status === 'active' 
+                      admin.is_active 
                         ? 'bg-green-500/10 text-green-400' 
                         : 'bg-slate-600 text-slate-400'
                     }`}>
-                      {admin.status === 'active' ? <CheckCircle size={12} /> : <Clock size={12} />}
-                      {admin.status === 'active' ? 'Actif' : 'Inactif'}
+                      {admin.is_active ? <CheckCircle size={12} /> : <Clock size={12} />}
+                      {admin.is_active ? 'Actif' : 'Inactif'}
                     </span>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => { setEditingUser(admin); setShowUserModal(true); }}
+                        onClick={() => openUserModal(admin)}
                         className="p-2 hover:bg-slate-600 rounded-lg transition-colors text-slate-400 hover:text-white"
                       >
                         <Edit2 size={16} />
@@ -463,17 +579,20 @@ const AdminSettings: React.FC = () => {
                       <button className="p-2 hover:bg-slate-600 rounded-lg transition-colors text-slate-400 hover:text-white">
                         <Key size={16} />
                       </button>
-                      {admin.role !== 'super_admin' && (
-                        <button className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400">
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+                      <button 
+                        onClick={() => handleDeleteUser(admin.id)}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
+          )}
         </div>
       )}
 
@@ -555,20 +674,34 @@ const AdminSettings: React.FC = () => {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">Nom complet</label>
-                <input
-                  type="text"
-                  defaultValue={editingUser?.name || ''}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
-                  placeholder="Jean Dupont"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">Prénom</label>
+                  <input
+                    type="text"
+                    value={userFormName}
+                    onChange={(e) => setUserFormName(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
+                    placeholder="Jean"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-300 font-medium mb-2">Nom</label>
+                  <input
+                    type="text"
+                    value={userFormLastName}
+                    onChange={(e) => setUserFormLastName(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
+                    placeholder="Dupont"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-slate-300 font-medium mb-2">Email</label>
                 <input
                   type="email"
-                  defaultValue={editingUser?.email || ''}
+                  value={userFormEmail}
+                  onChange={(e) => setUserFormEmail(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
                   placeholder="email@oaib.bj"
                 />
@@ -576,19 +709,21 @@ const AdminSettings: React.FC = () => {
               <div>
                 <label className="block text-slate-300 font-medium mb-2">Rôle</label>
                 <select
-                  defaultValue={editingUser?.role || 'moderator'}
+                  value={userFormRole}
+                  onChange={(e) => setUserFormRole(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
                 >
                   <option value="moderator">Modérateur</option>
                   <option value="admin">Admin</option>
-                  <option value="super_admin">Super Admin</option>
                 </select>
               </div>
               {!editingUser && (
                 <div>
-                  <label className="block text-slate-300 font-medium mb-2">Mot de passe temporaire</label>
+                  <label className="block text-slate-300 font-medium mb-2">Mot de passe</label>
                   <input
                     type="password"
+                    value={userFormPassword}
+                    onChange={(e) => setUserFormPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
                     placeholder="••••••••"
                   />
@@ -602,9 +737,11 @@ const AdminSettings: React.FC = () => {
                   Annuler
                 </button>
                 <button
-                  onClick={() => setShowUserModal(false)}
-                  className="flex-1 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors"
+                  onClick={handleSaveUser}
+                  disabled={savingUser}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
                 >
+                  {savingUser ? <Loader2 size={18} className="animate-spin" /> : null}
                   {editingUser ? 'Enregistrer' : 'Créer'}
                 </button>
               </div>

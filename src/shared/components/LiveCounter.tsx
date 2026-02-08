@@ -1,23 +1,31 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { getPublicCandidateCount } from '../../services/candidateService';
 
 /**
- * Live counter that simulates real-time candidate registrations
- * Increments by 1-3 every 5-15 seconds to create dynamic feel
+ * Live counter — affiche le nombre réel de candidats inscrits depuis la BDD.
+ * Rafraîchit toutes les 60 secondes pour refléter les nouvelles inscriptions.
  */
 const LiveCounter: React.FC = () => {
-  const baseCount = 1547; // Starting count for 2026 edition
-  const [count, setCount] = useState(baseCount);
+  const [count, setCount] = useState<number | null>(null);
+  const fetched = useRef(false);
+
+  const fetchCount = () => {
+    getPublicCandidateCount()
+      .then(r => setCount(r.data?.total ?? 0))
+      .catch(() => {});
+  };
 
   useEffect(() => {
-    // Increment randomly between 1-3 every 5-15 seconds
-    const interval = setInterval(() => {
-      setCount(prev => prev + Math.floor(Math.random() * 3) + 1);
-    }, Math.random() * 10000 + 5000);
-
+    if (fetched.current) return;
+    fetched.current = true;
+    fetchCount();
+    // Rafraîchir toutes les 60s pour capter les nouvelles inscriptions
+    const interval = setInterval(fetchCount, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // Format number with comma separator
+  if (count === null) return <span className="tabular-nums">—</span>;
+
   const formatted = count.toLocaleString('fr-FR');
 
   return (

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Target, Eye, ShieldCheck, Linkedin, Twitter, Facebook, Instagram, Send, MapPin, Mail, Phone, CheckCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePageTitle } from '../../shared/hooks/usePageTitle';
-import { pillars, teamMembers, partners } from '../data/about';
+import { pillars, teamMembers } from '../data/about';
+import { listPartners } from '../../services/cmsService';
+import type { Partner } from '../../shared/types';
 import { AnimatedSection, AnimatedCard } from '../../shared/components/layout/AnimatedSection';
 import { OptimizedImage } from '../../shared/components/ui/OptimizedImage';
 import { NeuralNetworkPattern, HexagonPattern, DataFlowPattern, ConstellationPattern } from '../../shared/components/patterns/AIPatterns';
@@ -13,6 +15,13 @@ const About: React.FC = () => {
   usePageTitle('A propos');
   const [formData, setFormData] = useState({ name: '', email: '', subject: 'Partenariat', message: '' });
   const [formStatus, setFormStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [partners, setPartners] = useState<Partner[]>([]);
+
+  useEffect(() => {
+    listPartners('ordering=display_order')
+      .then(r => { if (r.data) setPartners((r.data.results ?? []).filter(p => p.is_active)); })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,22 +51,22 @@ const About: React.FC = () => {
         {/* Pattern */}
         <NeuralNetworkPattern className="w-[600px] h-[600px] text-pattern absolute bottom-0 left-0 opacity-45" />
         <HexagonPattern className="w-[300px] h-[300px] text-pattern absolute top-10 right-[45%] opacity-30" />
-        {/* Benin flag colors - subtle blurs */}
-        <div className="absolute top-[20%] left-[30%] w-[220px] h-[220px] bg-benin-yellow/15 rounded-full blur-[70px]" />
-        <div className="absolute bottom-[30%] right-[20%] w-[150px] h-[150px] bg-benin-red/12 rounded-full blur-[60px]" />
-        <div className="absolute top-[60%] left-[10%] w-[100px] h-[100px] bg-benin-green/8 rounded-full blur-[50px]" />
-        {/* Subtle tricolor line */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 flex">
-          <div className="flex-1 bg-benin-green/30" />
-          <div className="flex-1 bg-benin-yellow/35" />
-          <div className="flex-1 bg-benin-red/30" />
+        {/* Benin flag colors - Plus visibles */}
+        <div className="absolute top-[20%] left-[30%] w-[280px] h-[280px] bg-benin-yellow/28 rounded-full blur-[80px]" />
+        <div className="absolute bottom-[30%] right-[20%] w-[220px] h-[220px] bg-benin-red/25 rounded-full blur-[70px]" />
+        <div className="absolute top-[60%] left-[10%] w-[180px] h-[180px] bg-benin-green/20 rounded-full blur-[60px]" />
+        {/* Tricolor line Plus visible */}
+        <div className="absolute bottom-0 left-0 right-0 h-1.5 flex">
+          <div className="flex-1 bg-benin-green/45" />
+          <div className="flex-1 bg-benin-yellow/55" />
+          <div className="flex-1 bg-benin-red/45" />
         </div>
         
         <div className="relative z-10 w-full px-6 sm:px-10 md:px-16 lg:px-20 py-20">
           <div className="max-w-6xl mx-auto">
             <div className="max-w-xl">
               <AnimatedSection>
-                <span className="inline-block px-4 py-1.5 bg-accent text-primary text-xs font-bold uppercase tracking-wider rounded-full mb-8">
+                <span className="inline-block px-4 py-1.5 bg-accent text-white text-xs font-bold uppercase tracking-wider rounded-full mb-8">
                   Notre Histoire
                 </span>
                 <h1 className="text-text text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8">
@@ -93,9 +102,9 @@ const About: React.FC = () => {
       <section className="relative px-6 sm:px-10 md:px-16 lg:px-20 py-24 overflow-hidden">
         <HexagonPattern className="w-[500px] h-[500px] text-pattern absolute top-0 right-0 opacity-35" />
         <DataFlowPattern className="w-[200px] h-[400px] text-pattern absolute bottom-0 left-10 opacity-25" />
-        {/* Benin accents */}
-        <div className="absolute top-[50%] right-[5%] w-[120px] h-[120px] bg-benin-yellow/10 rounded-full blur-[50px]" />
-        <div className="absolute bottom-[20%] left-[30%] w-[80px] h-[80px] bg-benin-red/8 rounded-full blur-[40px]" />
+        {/* Benin accents - Plus visibles */}
+        <div className="absolute top-[50%] right-[5%] w-[180px] h-[180px] bg-benin-yellow/22 rounded-full blur-[60px]" />
+        <div className="absolute bottom-[20%] left-[30%] w-[140px] h-[140px] bg-benin-red/18 rounded-full blur-[50px]" />
         
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-16">
@@ -141,7 +150,32 @@ const About: React.FC = () => {
       </section>
 
       {/* Team - Layout moderne avec hover effects */}
-      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-primary relative overflow-hidden">
+      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-gradient-to-br from-primary via-accent to-blue relative overflow-hidden">
+        {/* Binary matrix overlay - digital effect */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none font-mono text-[10px] text-white leading-relaxed select-none overflow-hidden">
+          {Array.from({ length: 25 }).map((_, i) => (
+            <div key={i} className="whitespace-nowrap animate-pulse" style={{ animationDelay: `${i * 0.12}s`, animationDuration: '3.5s' }}>
+              {Array.from({ length: 160 }).map(() => Math.random() > 0.5 ? '1' : '0').join(' ')}
+            </div>
+          ))}
+        </div>
+
+        {/* Circuit pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="about-circuit" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                <circle cx="50" cy="50" r="2" fill="currentColor" className="text-white" />
+                <line x1="50" y1="50" x2="100" y2="50" stroke="currentColor" strokeWidth="0.6" className="text-white" />
+                <line x1="50" y1="50" x2="50" y2="0" stroke="currentColor" strokeWidth="0.6" className="text-white" />
+                <circle cx="0" cy="50" r="1.5" fill="currentColor" className="text-white" />
+                <circle cx="50" cy="0" r="1.5" fill="currentColor" className="text-white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#about-circuit)" />
+          </svg>
+        </div>
+
         {/* Background image */}
         <div className="absolute inset-0 opacity-[0.08]">
           <img 
@@ -153,14 +187,14 @@ const About: React.FC = () => {
         {/* Patterns */}
         <NeuralNetworkPattern className="w-[400px] h-[400px] text-pattern absolute top-0 right-0 opacity-25" />
         <HexagonPattern className="w-[250px] h-[250px] text-pattern absolute bottom-10 left-10 opacity-20" />
-        {/* Benin accents */}
-        <div className="absolute top-[20%] left-[10%] w-[150px] h-[150px] bg-benin-yellow/10 rounded-full blur-[60px]" />
-        <div className="absolute bottom-[30%] right-[15%] w-[100px] h-[100px] bg-benin-red/8 rounded-full blur-[50px]" />
+        {/* Benin accents - Plus visibles */}
+        <div className="absolute top-[20%] left-[10%] w-[220px] h-[220px] bg-benin-yellow/22 rounded-full blur-[70px]" />
+        <div className="absolute bottom-[30%] right-[15%] w-[160px] h-[160px] bg-benin-red/18 rounded-full blur-[60px]" />
         <div className="max-w-6xl mx-auto relative z-10">
           <AnimatedSection className="text-center mb-16">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent mb-3">L'Equipe</p>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-white/90 mb-3">L'Equipe</p>
             <h2 className="text-4xl font-black text-white mb-4">Les Visages derriere l'OAIB</h2>
-            <p className="text-white/60 max-w-xl mx-auto">Des passionnes d'IA et d'education qui travaillent pour democratiser l'acces aux technologies emergentes.</p>
+            <p className="text-white/70 max-w-xl mx-auto">Des passionnes d'IA et d'education qui travaillent pour democratiser l'acces aux technologies emergentes.</p>
           </AnimatedSection>
           
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -175,16 +209,16 @@ const About: React.FC = () => {
                       className="h-full"
                     />
                     {/* Overlay au hover */}
-                    <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/80 transition-all duration-500 flex items-center justify-center">
-                      <p className="text-primary font-medium text-center px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">
+                    <div className="absolute inset-0 bg-accent/0 group-hover:bg-accent/90 transition-all duration-500 flex items-center justify-center">
+                      <p className="text-white font-medium text-center px-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-sm">
                         {member.desc}
                       </p>
                     </div>
                   </div>
                   
                   {/* Info */}
-                  <h4 className="font-bold text-lg text-white group-hover:text-accent transition-colors">{member.name}</h4>
-                  <p className="text-accent text-sm font-semibold uppercase tracking-wider">{member.role}</p>
+                  <h4 className="font-bold text-lg text-white group-hover:text-white transition-colors">{member.name}</h4>
+                  <p className="text-white/80 text-sm font-semibold uppercase tracking-wider">{member.role}</p>
                 </div>
               </AnimatedCard>
             ))}
@@ -219,24 +253,32 @@ const About: React.FC = () => {
           <div className="relative overflow-hidden mb-12">
             <div className="flex animate-scroll">
               {/* Premier groupe */}
-              {partners.map((p, i) => (
-                <div key={`p1-${i}`} className="flex-shrink-0 w-64 mx-4">
+              {partners.map((p) => (
+                <div key={`p1-${p.id}`} className="flex-shrink-0 w-64 mx-4">
                   <div className="group bg-white rounded-2xl p-8 border border-border hover:border-primary/30 hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[140px]">
-                    <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <span className="text-xl font-black text-text-muted">{p.charAt(0)}</span>
-                    </div>
-                    <span className="text-sm font-bold text-text-secondary text-center">{p}</span>
+                    {p.logo ? (
+                      <img src={p.logo} alt={p.name} className="max-h-16 max-w-full object-contain mb-4 group-hover:scale-110 transition-transform" />
+                    ) : (
+                      <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <span className="text-xl font-black text-text-muted">{p.name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-sm font-bold text-text-secondary text-center">{p.name}</span>
                   </div>
                 </div>
               ))}
               {/* Duplication pour effet infini */}
-              {partners.map((p, i) => (
-                <div key={`p2-${i}`} className="flex-shrink-0 w-64 mx-4">
+              {partners.map((p) => (
+                <div key={`p2-${p.id}`} className="flex-shrink-0 w-64 mx-4">
                   <div className="group bg-white rounded-2xl p-8 border border-border hover:border-primary/30 hover:shadow-lg transition-all flex flex-col items-center justify-center min-h-[140px]">
-                    <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                      <span className="text-xl font-black text-text-muted">{p.charAt(0)}</span>
-                    </div>
-                    <span className="text-sm font-bold text-text-secondary text-center">{p}</span>
+                    {p.logo ? (
+                      <img src={p.logo} alt={p.name} className="max-h-16 max-w-full object-contain mb-4 group-hover:scale-110 transition-transform" />
+                    ) : (
+                      <div className="w-20 h-20 bg-background rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <span className="text-xl font-black text-text-muted">{p.name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-sm font-bold text-text-secondary text-center">{p.name}</span>
                   </div>
                 </div>
               ))}
@@ -247,7 +289,7 @@ const About: React.FC = () => {
           <AnimatedSection className="text-center">
             <div className="inline-flex flex-col sm:flex-row items-center gap-4 p-6 bg-primary/10 rounded-2xl border border-primary/20">
               <p className="text-text font-bold">Vous souhaitez rejoindre l'aventure ?</p>
-              <button className="px-8 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-light hover:shadow-lg transition-all">
+              <button className="px-8 py-3 bg-gradient-to-r from-primary via-accent to-blue text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all">
                 Devenir Partenaire
               </button>
             </div>
@@ -272,24 +314,28 @@ const About: React.FC = () => {
                       <label htmlFor="contact-name" className="text-sm font-bold text-text">Nom</label>
                       <input
                         id="contact-name"
+                        name="name"
                         className="rounded-xl border border-border bg-white p-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-text"
                         placeholder="Jean Dupont"
                         type="text"
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        autoComplete="name"
                       />
                     </div>
                     <div className="flex flex-col gap-2">
                       <label htmlFor="contact-email" className="text-sm font-bold text-text">Email</label>
                       <input
                         id="contact-email"
+                        name="email"
                         className="rounded-xl border border-border bg-white p-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-text"
                         placeholder="jean@example.com"
                         type="email"
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        autoComplete="email"
                       />
                     </div>
                   </div>
@@ -297,6 +343,7 @@ const About: React.FC = () => {
                     <label htmlFor="contact-subject" className="text-sm font-bold text-text">Sujet</label>
                     <select
                       id="contact-subject"
+                      name="subject"
                       className="rounded-xl border border-border bg-white p-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-text"
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
@@ -310,6 +357,7 @@ const About: React.FC = () => {
                     <label htmlFor="contact-message" className="text-sm font-bold text-text">Message</label>
                     <textarea
                       id="contact-message"
+                      name="message"
                       className="rounded-xl border border-border bg-white p-4 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary text-text resize-none"
                       placeholder="Comment pouvons-nous vous aider ?"
                       rows={5}
@@ -321,7 +369,7 @@ const About: React.FC = () => {
                   <button
                     type="submit"
                     disabled={formStatus === 'sending'}
-                    className="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primary-light hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 text-base"
+                    className="w-full bg-gradient-to-r from-primary via-accent to-blue text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60 text-base"
                   >
                     <AnimatePresence mode="wait">
                       {formStatus === 'idle' && (
@@ -374,7 +422,7 @@ const About: React.FC = () => {
                   
                   <div className="space-y-8">
                     <div className="flex gap-5">
-                      <div className="bg-accent text-primary p-3 rounded-xl shrink-0 h-min">
+                      <div className="bg-accent text-white p-3 rounded-xl shrink-0 h-min">
                         <MapPin size={24} />
                       </div>
                       <div>
@@ -383,7 +431,7 @@ const About: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-5">
-                      <div className="bg-accent text-primary p-3 rounded-xl shrink-0 h-min">
+                      <div className="bg-accent text-white p-3 rounded-xl shrink-0 h-min">
                         <Mail size={24} />
                       </div>
                       <div>
@@ -392,7 +440,7 @@ const About: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex gap-5">
-                      <div className="bg-accent text-primary p-3 rounded-xl shrink-0 h-min">
+                      <div className="bg-accent text-white p-3 rounded-xl shrink-0 h-min">
                         <Phone size={24} />
                       </div>
                       <div>
@@ -414,7 +462,7 @@ const About: React.FC = () => {
                         <a
                           key={label}
                           href="#"
-                          className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center hover:bg-accent hover:text-primary transition-all text-white"
+                          className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center hover:bg-accent hover:text-white transition-all text-white"
                           aria-label={label}
                         >
                           <Icon size={20} />

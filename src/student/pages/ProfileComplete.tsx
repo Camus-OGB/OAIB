@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Mail, 
@@ -17,140 +17,210 @@ import {
   Save,
   X,
   Trash2,
-  Eye
+  Eye,
+  Loader2
 } from 'lucide-react';
-
-interface PersonalInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  birthDate: string;
-  gender: string;
-  address: string;
-  city: string;
-  country: string;
-}
-
-interface SchoolInfo {
-  establishment: string;
-  level: string;
-  class: string;
-  averageGrade: string;
-  mathGrade: string;
-  scienceGrade: string;
-}
-
-interface TutorInfo {
-  firstName: string;
-  lastName: string;
-  relationship: string;
-  phone: string;
-  email: string;
-}
-
-interface Document {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  uploadDate: string;
-  status: 'pending' | 'verified' | 'rejected';
-}
+import { useAuth } from '../../features/auth/context/AuthContext';
+import { getMyProfile, updateMyProfile, getMyTutor, updateMyTutor, getMyDocuments, uploadDocument, deleteDocument as deleteDocApi } from '../../services/candidateService';
+import type { CandidateProfile, TutorInfo as TutorInfoType, CandidateDocument } from '../../shared/types';
 
 const StudentProfile: React.FC = () => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'personal' | 'school' | 'tutor' | 'documents'>('personal');
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
-    firstName: 'Jean',
-    lastName: 'Dupont',
-    email: 'jean.dupont@email.com',
-    phone: '+229 97 00 00 00',
-    birthDate: '2008-05-15',
-    gender: 'male',
-    address: '123 Rue des Fleurs',
-    city: 'Cotonou',
+  const [personalInfo, setPersonalInfo] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+    gender: '',
+    address: '',
+    city: '',
+    region: '',
     country: 'Bénin',
   });
 
-  const [schoolInfo, setSchoolInfo] = useState<SchoolInfo>({
-    establishment: 'Lycée Béhanzin',
-    level: 'Terminale',
-    class: 'Terminale D',
-    averageGrade: '15.5',
-    mathGrade: '17',
-    scienceGrade: '16',
+  const [schoolInfo, setSchoolInfo] = useState({
+    establishment: '',
+    level: '',
+    class: '',
+    averageGrade: '',
+    mathGrade: '',
+    scienceGrade: '',
   });
 
-  const [tutorInfo, setTutorInfo] = useState<TutorInfo>({
-    firstName: 'Marie',
-    lastName: 'Dupont',
-    relationship: 'Mère',
-    phone: '+229 96 00 00 00',
-    email: 'marie.dupont@email.com',
+  const [tutorInfo, setTutorInfo] = useState({
+    firstName: '',
+    lastName: '',
+    relationship: '',
+    phone: '',
+    email: '',
   });
 
-  const [documents, setDocuments] = useState<Document[]>([
-    { id: '1', name: 'Bulletin_T1_2025.pdf', type: 'bulletin', size: '1.2 MB', uploadDate: '15 Jan 2026', status: 'verified' },
-    { id: '2', name: 'Bulletin_T2_2025.pdf', type: 'bulletin', size: '1.4 MB', uploadDate: '15 Jan 2026', status: 'pending' },
-    { id: '3', name: 'Certificat_scolarite.pdf', type: 'certificate', size: '0.8 MB', uploadDate: '15 Jan 2026', status: 'verified' },
-  ]);
+  const [documents, setDocuments] = useState<CandidateDocument[]>([]);
+  const [profileCompletion, setProfileCompletion] = useState(0);
+  const [registeredAt, setRegisteredAt] = useState('');
+
+  // Load data from API
+  useEffect(() => {
+    const load = async () => {
+      const [profileRes, tutorRes, docsRes] = await Promise.all([
+        getMyProfile(),
+        getMyTutor(),
+        getMyDocuments(),
+      ]);
+
+      if (profileRes.data) {
+        const p = profileRes.data;
+        // Convertir DD/MM/YYYY → YYYY-MM-DD pour <input type="date">
+        const rawDate = user?.birth_date || '';
+        const birthISO = rawDate.includes('/')
+          ? rawDate.split('/').reverse().join('-')
+          : rawDate;
+        setPersonalInfo({
+          firstName: user?.first_name || '',
+          lastName: user?.last_name || '',
+          email: user?.email || p.user_email,
+          phone: user?.phone || '',
+          birthDate: birthISO,
+          gender: p.gender || '',
+          address: p.address || '',
+          city: p.city || '',
+          region: p.region || '',
+          country: p.country || 'Bénin',
+        });
+        setSchoolInfo({
+          establishment: p.school || '',
+          level: p.level || '',
+          class: p.class_name || '',
+          averageGrade: p.average_grade?.toString() || '',
+          mathGrade: p.math_grade?.toString() || '',
+          scienceGrade: p.science_grade?.toString() || '',
+        });
+        setProfileCompletion(p.profile_completion);
+        setRegisteredAt(p.registered_at);
+      }
+
+      if (tutorRes.data) {
+        const t = tutorRes.data;
+        setTutorInfo({
+          firstName: t.first_name || '',
+          lastName: t.last_name || '',
+          relationship: t.relationship || '',
+          phone: t.phone || '',
+          email: t.email || '',
+        });
+      }
+
+      if (docsRes.data) {
+        setDocuments(Array.isArray(docsRes.data) ? docsRes.data : []);
+      }
+
+      setLoading(false);
+    };
+    load();
+  }, [user]);
 
   const isMinor = () => {
+    if (!personalInfo.birthDate) return false;
     const birthDate = new Date(personalInfo.birthDate);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
     return age < 18;
   };
 
-  // Calculate profile completion
-  const calculateCompletion = () => {
-    let completed = 0;
-    const total = 4;
-
-    // Personal info
-    if (personalInfo.firstName && personalInfo.lastName && personalInfo.email && personalInfo.phone) completed++;
-    // School info
-    if (schoolInfo.establishment && schoolInfo.level && schoolInfo.averageGrade) completed++;
-    // Tutor (only if minor)
-    if (!isMinor() || (tutorInfo.firstName && tutorInfo.phone)) completed++;
-    // Documents
-    if (documents.some(d => d.status === 'verified')) completed++;
-
-    return Math.round((completed / total) * 100);
-  };
-
-  const handleSave = () => {
-    // TODO: Save to backend
+  const handleSave = async () => {
+    setSaving(true);
+    // Save profile data (includes User fields + CandidateProfile fields)
+    await updateMyProfile({
+      first_name: personalInfo.firstName,
+      last_name: personalInfo.lastName,
+      phone: personalInfo.phone,
+      birth_date: personalInfo.birthDate || undefined,
+      gender: personalInfo.gender,
+      address: personalInfo.address,
+      city: personalInfo.city,
+      region: personalInfo.region,
+      country: personalInfo.country,
+      school: schoolInfo.establishment,
+      level: schoolInfo.level,
+      class_name: schoolInfo.class,
+      average_grade: schoolInfo.averageGrade ? parseFloat(schoolInfo.averageGrade) : undefined,
+      math_grade: schoolInfo.mathGrade ? parseFloat(schoolInfo.mathGrade) : undefined,
+      science_grade: schoolInfo.scienceGrade ? parseFloat(schoolInfo.scienceGrade) : undefined,
+    });
+    // Save tutor info (only for minors)
+    if (isMinor()) {
+      await updateMyTutor({
+        first_name: tutorInfo.firstName,
+        last_name: tutorInfo.lastName,
+        relationship: tutorInfo.relationship,
+        phone: tutorInfo.phone,
+        email: tutorInfo.email,
+      });
+    }
+    setSaving(false);
     setIsEditing(false);
-    console.log('Saving profile...', { personalInfo, schoolInfo, tutorInfo });
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const newDoc: Document = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: 'bulletin',
-        size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        uploadDate: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
-        status: 'pending',
-      };
-      setDocuments(prev => [...prev, newDoc]);
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    // Validation de la taille (max 5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Le fichier est trop volumineux (max 5 MB)');
+      return;
+    }
+
+    // Validation du type de fichier
+    if (file.type !== 'application/pdf') {
+      setUploadError('Seuls les fichiers PDF sont acceptés');
+      return;
+    }
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('name', file.name);
+      formData.append('doc_type', 'other');
+
+      const res = await uploadDocument(formData);
+
+      if (res.ok && res.data) {
+        setDocuments(prev => [...prev, res.data!]);
+        // Réinitialiser l'input pour permettre de télécharger à nouveau le même fichier
+        e.target.value = '';
+      } else {
+        setUploadError(res.error?.message || 'Erreur lors de l\'upload du document');
+      }
+    } catch (error) {
+      setUploadError('Erreur lors de l\'upload du document');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleDeleteDocument = (id: string) => {
+  const handleDeleteDocument = async (id: number) => {
+    await deleteDocApi(id);
     setDocuments(prev => prev.filter(d => d.id !== id));
   };
 
-  const getStatusBadge = (status: Document['status']) => {
+  const getStatusBadge = (status: CandidateDocument['status']) => {
     const config = {
       pending: { label: 'En attente', className: 'bg-benin-yellow/10 text-benin-yellow', icon: AlertCircle },
-      verified: { label: 'Vérifié', className: 'bg-green-100 text-green-600', icon: CheckCircle },
+      validated: { label: 'Vérifié', className: 'bg-green-100 text-green-600', icon: CheckCircle },
       rejected: { label: 'Rejeté', className: 'bg-red-100 text-benin-red', icon: X },
     };
     const { label, className, icon: Icon } = config[status];
@@ -165,12 +235,18 @@ const StudentProfile: React.FC = () => {
   const tabs = [
     { id: 'personal', label: 'Infos Personnelles', icon: User },
     { id: 'school', label: 'Infos Scolaires', icon: School },
-    { id: 'tutor', label: 'Tuteur', icon: Users },
+    ...(isMinor() ? [{ id: 'tutor', label: 'Tuteur', icon: Users }] : []),
     { id: 'documents', label: 'Documents', icon: FileText },
   ];
 
   return (
     <div className="space-y-8">
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        </div>
+      ) : (
+      <>
       {/* Page title */}
       <div className="flex items-center justify-between">
         <div>
@@ -196,9 +272,10 @@ const StudentProfile: React.FC = () => {
             </button>
             <button
               onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors"
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors disabled:opacity-60"
             >
-              <Save size={18} />
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Enregistrer
             </button>
           </div>
@@ -208,7 +285,7 @@ const StudentProfile: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Profile card */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-border p-6 text-center sticky top-24">
+          <div className="bg-white/80 rounded-2xl border border-border p-6 text-center sticky top-24">
             {/* Avatar */}
             <div className="relative w-28 h-28 mx-auto mb-4">
               <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -235,12 +312,12 @@ const StudentProfile: React.FC = () => {
             <div className="mt-6 pt-4 border-t border-border">
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-text-secondary">Dossier complété</span>
-                <span className="font-bold text-primary">{calculateCompletion()}%</span>
+                <span className="font-bold text-primary">{profileCompletion}%</span>
               </div>
               <div className="h-2 bg-border rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${calculateCompletion()}%` }}
+                  style={{ width: `${profileCompletion}%` }}
                 />
               </div>
             </div>
@@ -257,7 +334,7 @@ const StudentProfile: React.FC = () => {
               </div>
               <div className="flex items-center gap-3 text-sm">
                 <Calendar className="w-4 h-4 text-text-muted" />
-                <span className="text-text-secondary">Inscrit le 15 Jan 2026</span>
+                <span className="text-text-secondary">{registeredAt ? `Inscrit le ${new Date(registeredAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}</span>
               </div>
             </div>
           </div>
@@ -384,6 +461,29 @@ const StudentProfile: React.FC = () => {
                     disabled={!isEditing}
                     className="w-full px-4 py-3 bg-background border border-border rounded-xl text-text focus:outline-none focus:border-primary disabled:opacity-60"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-text-secondary mb-2">Région / Département *</label>
+                  <select
+                    value={personalInfo.region}
+                    onChange={(e) => setPersonalInfo({ ...personalInfo, region: e.target.value })}
+                    disabled={!isEditing}
+                    className="w-full px-4 py-3 bg-background border border-border rounded-xl text-text focus:outline-none focus:border-primary disabled:opacity-60"
+                  >
+                    <option value="">Sélectionner</option>
+                    <option value="Littoral">Littoral</option>
+                    <option value="Oueme">Ouémé</option>
+                    <option value="Atlantique">Atlantique</option>
+                    <option value="Borgou">Borgou</option>
+                    <option value="Atacora">Atacora</option>
+                    <option value="Zou">Zou</option>
+                    <option value="Collines">Collines</option>
+                    <option value="Mono">Mono</option>
+                    <option value="Couffo">Couffo</option>
+                    <option value="Plateau">Plateau</option>
+                    <option value="Alibori">Alibori</option>
+                    <option value="Donga">Donga</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-text-secondary mb-2">Pays *</label>
@@ -620,21 +720,42 @@ const StudentProfile: React.FC = () => {
               </div>
 
               {/* Upload zone */}
-              <label className="block mb-6 cursor-pointer">
-                <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary hover:bg-primary/5 transition-all">
-                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <Upload className="w-8 h-8 text-primary" />
+              <div className="mb-6">
+                <label className="block cursor-pointer">
+                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                    uploading
+                      ? 'border-primary bg-primary/5 cursor-wait'
+                      : 'border-border hover:border-primary hover:bg-primary/5'
+                  }`}>
+                    <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      {uploading ? (
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      ) : (
+                        <Upload className="w-8 h-8 text-primary" />
+                      )}
+                    </div>
+                    <p className="font-bold text-text mb-1">
+                      {uploading ? 'Upload en cours...' : 'Cliquez pour uploader un document'}
+                    </p>
+                    <p className="text-sm text-text-secondary">ou glissez-déposez un fichier PDF (max 5 MB)</p>
                   </div>
-                  <p className="font-bold text-text mb-1">Cliquez pour uploader un document</p>
-                  <p className="text-sm text-text-secondary">ou glissez-déposez un fichier PDF (max 5 MB)</p>
-                </div>
-                <input 
-                  type="file" 
-                  accept=".pdf" 
-                  className="hidden" 
-                  onChange={handleFileUpload}
-                />
-              </label>
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                  />
+                </label>
+
+                {/* Upload Error */}
+                {uploadError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-benin-red shrink-0" />
+                    <p className="text-sm text-benin-red">{uploadError}</p>
+                  </div>
+                )}
+              </div>
 
               {/* Documents list */}
               <div className="space-y-3">
@@ -645,7 +766,7 @@ const StudentProfile: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-text truncate">{doc.name}</p>
-                      <p className="text-sm text-text-secondary">{doc.size} • {doc.uploadDate}</p>
+                      <p className="text-sm text-text-secondary">{doc.size_bytes ? `${(doc.size_bytes / 1024).toFixed(0)} KB` : '—'} • {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(doc.status)}
@@ -688,6 +809,8 @@ const StudentProfile: React.FC = () => {
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

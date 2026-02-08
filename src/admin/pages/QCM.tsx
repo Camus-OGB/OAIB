@@ -1,169 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   Plus,
+  Minus,
   Edit2,
   Trash2,
   Copy,
   Download,
   Upload,
-  Filter,
   ChevronDown,
   ChevronUp,
   Save,
   X,
-  AlertCircle,
   CheckCircle,
-  Clock,
-  Settings
+  Settings,
+  Loader2,
+  FileSpreadsheet,
+  FileJson,
+  Tag
 } from 'lucide-react';
+import {
+  listQuestions, listCategories, createQuestion, updateQuestion, deleteQuestion,
+  createCategory, updateCategory, deleteCategory,
+  exportQuestionsJSON, exportQuestionsExcel, importQuestionsJSON, importQuestionsExcel,
+} from '../../services/examService';
+import type { Question, QuestionCategory, Difficulty } from '../../shared/types';
 
-type Difficulty = 'easy' | 'medium' | 'hard';
-type Category = 'logic' | 'math' | 'programming' | 'ml' | 'general';
-
-interface Question {
-  id: string;
-  text: string;
-  options: { id: string; text: string; isCorrect: boolean }[];
-  difficulty: Difficulty;
-  category: Category;
-  points: number;
-  timeLimit: number; // seconds
-  createdAt: string;
-  usageCount: number;
-}
-
-const mockQuestions: Question[] = [
-  {
-    id: '1',
-    text: 'Si tous les A sont B, et tous les B sont C, alors :',
-    options: [
-      { id: 'a', text: 'Tous les C sont A', isCorrect: false },
-      { id: 'b', text: 'Tous les A sont C', isCorrect: true },
-      { id: 'c', text: 'Certains C ne sont pas A', isCorrect: false },
-      { id: 'd', text: 'Aucun A n\'est C', isCorrect: false },
-    ],
-    difficulty: 'easy',
-    category: 'logic',
-    points: 5,
-    timeLimit: 60,
-    createdAt: '2026-01-10',
-    usageCount: 245,
-  },
-  {
-    id: '2',
-    text: 'Complétez la suite : 2, 6, 12, 20, 30, ?',
-    options: [
-      { id: 'a', text: '40', isCorrect: false },
-      { id: 'b', text: '42', isCorrect: true },
-      { id: 'c', text: '44', isCorrect: false },
-      { id: 'd', text: '46', isCorrect: false },
-    ],
-    difficulty: 'medium',
-    category: 'math',
-    points: 10,
-    timeLimit: 90,
-    createdAt: '2026-01-12',
-    usageCount: 189,
-  },
-  {
-    id: '3',
-    text: 'Quel algorithme a une complexité O(n log n) pour le tri ?',
-    options: [
-      { id: 'a', text: 'Bubble Sort', isCorrect: false },
-      { id: 'b', text: 'Quick Sort', isCorrect: true },
-      { id: 'c', text: 'Selection Sort', isCorrect: false },
-      { id: 'd', text: 'Insertion Sort', isCorrect: false },
-    ],
-    difficulty: 'hard',
-    category: 'programming',
-    points: 15,
-    timeLimit: 120,
-    createdAt: '2026-01-15',
-    usageCount: 156,
-  },
-  {
-    id: '4',
-    text: 'Qu\'est-ce que le surapprentissage (overfitting) en Machine Learning ?',
-    options: [
-      { id: 'a', text: 'Le modèle ne peut pas apprendre', isCorrect: false },
-      { id: 'b', text: 'Le modèle mémorise au lieu de généraliser', isCorrect: true },
-      { id: 'c', text: 'Le modèle est trop simple', isCorrect: false },
-      { id: 'd', text: 'Manque de données', isCorrect: false },
-    ],
-    difficulty: 'medium',
-    category: 'ml',
-    points: 10,
-    timeLimit: 90,
-    createdAt: '2026-01-18',
-    usageCount: 203,
-  },
-];
-
-const difficultyConfig = {
+const difficultyConfig: Record<string, { label: string; className: string }> = {
   easy: { label: 'Facile', className: 'bg-green-500/10 text-green-400' },
   medium: { label: 'Moyen', className: 'bg-yellow-500/10 text-yellow-400' },
   hard: { label: 'Difficile', className: 'bg-red-500/10 text-red-400' },
 };
 
-const categoryConfig = {
-  logic: { label: 'Logique', className: 'bg-blue-500/10 text-blue-400' },
-  math: { label: 'Mathématiques', className: 'bg-purple-500/10 text-purple-400' },
-  programming: { label: 'Programmation', className: 'bg-orange-500/10 text-orange-400' },
-  ml: { label: 'Machine Learning', className: 'bg-pink-500/10 text-pink-400' },
-  general: { label: 'Culture IA', className: 'bg-cyan-500/10 text-cyan-400' },
-};
-
 interface QuestionFormData {
   text: string;
-  options: { id: string; text: string; isCorrect: boolean }[];
+  options: { text: string; is_correct: boolean; order: number }[];
   difficulty: Difficulty;
-  category: Category;
+  category: number;
   points: number;
-  timeLimit: number;
+  time_limit_seconds: number;
 }
+
+const MIN_OPTIONS = 2;
+const MAX_OPTIONS = 8;
 
 const emptyFormData: QuestionFormData = {
   text: '',
   options: [
-    { id: 'a', text: '', isCorrect: false },
-    { id: 'b', text: '', isCorrect: false },
-    { id: 'c', text: '', isCorrect: false },
-    { id: 'd', text: '', isCorrect: false },
+    { text: '', is_correct: false, order: 1 },
+    { text: '', is_correct: false, order: 2 },
   ],
   difficulty: 'medium',
-  category: 'logic',
+  category: 0,
   points: 10,
-  timeLimit: 90,
+  time_limit_seconds: 90,
 };
 
 const AdminQCM: React.FC = () => {
-  const [questions, setQuestions] = useState<Question[]>(mockQuestions);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [categories, setCategories] = useState<QuestionCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | 'all'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<Category | 'all'>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [formData, setFormData] = useState<QuestionFormData>(emptyFormData);
-  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [qcmSettings, setQcmSettings] = useState({
-    questionsPerExam: 20,
-    totalDuration: 30, // minutes
-    passingScore: 60, // percentage
-    randomizeQuestions: true,
-    showCorrectAnswers: false,
-  });
+  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [importing, setImporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [importResult, setImportResult] = useState<{ created: number; errors: { index: number; error: string }[] } | null>(null);
+  const importFileRef = React.useRef<HTMLInputElement>(null);
+  const itemsPerPage = 20;
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesSearch = q.text.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDifficulty = selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
-    const matchesCategory = selectedCategory === 'all' || q.category === selectedCategory;
-    return matchesSearch && matchesDifficulty && matchesCategory;
-  });
+  // Category management state
+  const [showCategoryPanel, setShowCategoryPanel] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  const fetchQuestions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('page_size', String(itemsPerPage));
+      if (searchQuery) params.set('search', searchQuery);
+      if (selectedDifficulty !== 'all') params.set('difficulty', selectedDifficulty);
+      if (selectedCategory !== 'all') params.set('category', selectedCategory);
+      const res = await listQuestions(params.toString());
+      if (res.ok) { setQuestions(res.data.results ?? []); setTotalCount(res.data.count ?? 0); }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  }, [currentPage, searchQuery, selectedDifficulty, selectedCategory]);
+
+  useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
+
+  useEffect(() => {
+    listCategories().then(res => { if (res.ok) setCategories(Array.isArray(res.data) ? res.data : (res.data as any).results ?? []); });
+  }, []);
+
+  const refreshCategories = () => {
+    listCategories().then(res => { if (res.ok) setCategories(Array.isArray(res.data) ? res.data : (res.data as any).results ?? []); });
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    setSavingCategory(true);
+    try {
+      const res = await createCategory({ name: newCategoryName.trim() });
+      if (res.ok) { setNewCategoryName(''); refreshCategories(); }
+    } catch { /* ignore */ }
+    finally { setSavingCategory(false); }
+  };
+
+  const handleUpdateCategory = async (id: number) => {
+    if (!editingCategoryName.trim()) return;
+    setSavingCategory(true);
+    try {
+      const res = await updateCategory(id, { name: editingCategoryName.trim() });
+      if (res.ok) { setEditingCategoryId(null); setEditingCategoryName(''); refreshCategories(); }
+    } catch { /* ignore */ }
+    finally { setSavingCategory(false); }
+  };
+
+  const handleDeleteCategory = async (id: number, name: string) => {
+    if (!confirm(`Supprimer la catégorie « ${name} » ? Les questions associées ne seront pas supprimées.`)) return;
+    try { await deleteCategory(id); refreshCategories(); } catch { /* ignore */ }
+  };
 
   const stats = {
-    total: questions.length,
+    total: totalCount,
     easy: questions.filter(q => q.difficulty === 'easy').length,
     medium: questions.filter(q => q.difficulty === 'medium').length,
     hard: questions.filter(q => q.difficulty === 'hard').length,
@@ -171,7 +142,7 @@ const AdminQCM: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingQuestion(null);
-    setFormData(emptyFormData);
+    setFormData({ ...emptyFormData, category: categories[0]?.id || 0 });
     setShowModal(true);
   };
 
@@ -179,49 +150,60 @@ const AdminQCM: React.FC = () => {
     setEditingQuestion(question);
     setFormData({
       text: question.text,
-      options: question.options,
+      options: question.options.map(o => ({ text: o.text, is_correct: o.is_correct ?? false, order: o.order })),
       difficulty: question.difficulty,
       category: question.category,
       points: question.points,
-      timeLimit: question.timeLimit,
+      time_limit_seconds: question.time_limit_seconds ?? 90,
     });
     setShowModal(true);
   };
 
-  const handleSave = () => {
-    if (editingQuestion) {
-      setQuestions(prev => prev.map(q => 
-        q.id === editingQuestion.id 
-          ? { ...q, ...formData }
-          : q
-      ));
-    } else {
-      const newQuestion: Question = {
-        id: Date.now().toString(),
-        ...formData,
-        createdAt: new Date().toISOString().split('T')[0],
-        usageCount: 0,
-      };
-      setQuestions(prev => [...prev, newQuestion]);
-    }
-    setShowModal(false);
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      if (editingQuestion) {
+        await updateQuestion(editingQuestion.id, {
+          text: formData.text,
+          difficulty: formData.difficulty,
+          category: formData.category,
+          points: formData.points,
+          time_limit_seconds: formData.time_limit_seconds,
+          options: formData.options as any,
+        });
+      } else {
+        await createQuestion({
+          text: formData.text,
+          difficulty: formData.difficulty,
+          category: formData.category,
+          points: formData.points,
+          time_limit_seconds: formData.time_limit_seconds,
+          options: formData.options,
+        });
+      }
+      setShowModal(false);
+      fetchQuestions();
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer cette question ?')) {
-      setQuestions(prev => prev.filter(q => q.id !== id));
-    }
+  const handleDelete = async (id: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette question ?')) return;
+    try { await deleteQuestion(id); fetchQuestions(); } catch { /* ignore */ }
   };
 
-  const handleDuplicate = (question: Question) => {
-    const duplicate: Question = {
-      ...question,
-      id: Date.now().toString(),
-      text: `${question.text} (copie)`,
-      createdAt: new Date().toISOString().split('T')[0],
-      usageCount: 0,
-    };
-    setQuestions(prev => [...prev, duplicate]);
+  const handleDuplicate = async (question: Question) => {
+    try {
+      await createQuestion({
+        text: `${question.text} (copie)`,
+        difficulty: question.difficulty,
+        category: question.category,
+        points: question.points,
+        time_limit_seconds: question.time_limit_seconds ?? 90,
+        options: question.options.map(o => ({ text: o.text, is_correct: o.is_correct ?? false, order: o.order })),
+      });
+      fetchQuestions();
+    } catch { /* ignore */ }
   };
 
   const handleOptionChange = (index: number, text: string) => {
@@ -233,20 +215,78 @@ const AdminQCM: React.FC = () => {
   const handleCorrectAnswerChange = (index: number) => {
     const newOptions = formData.options.map((opt, i) => ({
       ...opt,
-      isCorrect: i === index,
+      is_correct: i === index,
     }));
     setFormData({ ...formData, options: newOptions });
   };
 
-  const handleExport = () => {
-    const data = JSON.stringify(questions, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'qcm_questions.json';
-    a.click();
+  const handleAddOption = () => {
+    if (formData.options.length >= MAX_OPTIONS) return;
+    setFormData({
+      ...formData,
+      options: [...formData.options, { text: '', is_correct: false, order: formData.options.length + 1 }],
+    });
   };
+
+  const handleRemoveOption = (index: number) => {
+    if (formData.options.length <= MIN_OPTIONS) return;
+    const newOptions = formData.options
+      .filter((_, i) => i !== index)
+      .map((opt, i) => ({ ...opt, order: i + 1 }));
+    // Si on supprime la bonne réponse, reset
+    if (formData.options[index].is_correct && newOptions.length > 0) {
+      newOptions[0].is_correct = true;
+    }
+    setFormData({ ...formData, options: newOptions });
+  };
+
+  const handleExportJSON = async () => {
+    setShowExportMenu(false);
+    try { await exportQuestionsJSON(); } catch { alert('Erreur lors de l\'export JSON.'); }
+  };
+
+  const handleExportExcel = async () => {
+    setShowExportMenu(false);
+    try { await exportQuestionsExcel(); } catch { alert('Erreur lors de l\'export Excel.'); }
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+      const res = isExcel ? await importQuestionsExcel(file) : await importQuestionsJSON(file);
+      if (res.data) {
+        setImportResult(res.data);
+        fetchQuestions();
+      } else {
+        alert(res.error?.message || 'Erreur lors de l\'import.');
+      }
+    } catch { alert('Erreur lors de l\'import.'); }
+    finally { setImporting(false); if (importFileRef.current) importFileRef.current.value = ''; }
+  };
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = () => setShowExportMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showExportMenu]);
+
+  const getCategoryColor = (name: string) => {
+    const colors: Record<string, string> = {
+      logique: 'bg-blue-500/10 text-blue-400',
+      mathématiques: 'bg-purple-500/10 text-purple-400',
+      programmation: 'bg-orange-500/10 text-orange-400',
+      'machine learning': 'bg-pink-500/10 text-pink-400',
+    };
+    return colors[name.toLowerCase()] || 'bg-cyan-500/10 text-cyan-400';
+  };
+
+  const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
   return (
     <div className="space-y-6">
@@ -257,23 +297,54 @@ const AdminQCM: React.FC = () => {
           <p className="text-slate-400 mt-1">Banque de {stats.total} questions</p>
         </div>
         <div className="flex items-center gap-3">
+          {/* Import */}
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".json,.xlsx,.xls"
+            onChange={handleImportFile}
+            className="hidden"
+          />
           <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-300 font-medium rounded-xl hover:bg-slate-600 transition-colors"
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-300 font-medium rounded-xl hover:bg-slate-600 transition-colors disabled:opacity-50"
           >
-            <Settings size={18} />
-            Paramètres
+            {importing ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+            Importer
           </button>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-300 font-medium rounded-xl hover:bg-slate-600 transition-colors"
-          >
-            <Download size={18} />
-            Exporter
-          </button>
+          {/* Export dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 text-slate-300 font-medium rounded-xl hover:bg-slate-600 transition-colors"
+            >
+              <Download size={18} />
+              Exporter
+              <ChevronDown size={14} />
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={handleExportJSON}
+                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-slate-300 hover:bg-slate-700 transition-colors"
+                >
+                  <FileJson size={16} />
+                  Export JSON
+                </button>
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-2 w-full px-4 py-3 text-left text-slate-300 hover:bg-slate-700 transition-colors"
+                >
+                  <FileSpreadsheet size={16} />
+                  Export Excel
+                </button>
+              </div>
+            )}
+          </div>
           <button
             onClick={openCreateModal}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors"
           >
             <Plus size={18} />
             Nouvelle question
@@ -301,6 +372,127 @@ const AdminQCM: React.FC = () => {
         </div>
       </div>
 
+      {/* Import result banner */}
+      {importResult && (
+        <div className={`rounded-xl border p-4 flex items-center justify-between ${importResult.errors.length > 0 ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-green-500/10 border-green-500/30'}`}>
+          <div>
+            <p className="text-white font-medium">
+              <CheckCircle size={16} className="inline mr-2 text-green-400" />
+              {importResult.created} question{importResult.created > 1 ? 's' : ''} importée{importResult.created > 1 ? 's' : ''} avec succès.
+            </p>
+            {importResult.errors.length > 0 && (
+              <p className="text-yellow-400 text-sm mt-1">
+                {importResult.errors.length} erreur{importResult.errors.length > 1 ? 's' : ''} :
+                {importResult.errors.slice(0, 3).map(e => ` Ligne ${e.index + 1}: ${e.error}`).join(';')}
+                {importResult.errors.length > 3 && '…'}
+              </p>
+            )}
+          </div>
+          <button onClick={() => setImportResult(null)} className="text-slate-400 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
+      {/* Category Management Panel */}
+      <div className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
+        <button
+          onClick={() => setShowCategoryPanel(!showCategoryPanel)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-slate-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Tag size={20} className="text-accent" />
+            <span className="text-white font-semibold">Catégories</span>
+            <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{categories.length}</span>
+          </div>
+          {showCategoryPanel ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+        </button>
+
+        {showCategoryPanel && (
+          <div className="px-6 pb-6 border-t border-slate-700">
+            {/* Add new category */}
+            <div className="flex gap-3 mt-4 mb-5">
+              <input
+                type="text"
+                placeholder="Nom de la nouvelle catégorie…"
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleCreateCategory()}
+                className="flex-1 px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:border-accent"
+              />
+              <button
+                onClick={handleCreateCategory}
+                disabled={!newCategoryName.trim() || savingCategory}
+                className="flex items-center gap-2 px-5 py-2.5 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
+              >
+                {savingCategory ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                Ajouter
+              </button>
+            </div>
+
+            {/* Category list */}
+            {categories.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-4">Aucune catégorie. Ajoutez-en une ci-dessus.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {categories.map(cat => (
+                  <div key={cat.id} className="flex items-center gap-3 bg-slate-700/50 border border-slate-600 rounded-xl px-4 py-3 group">
+                    {editingCategoryId === cat.id ? (
+                      <>
+                        <input
+                          type="text"
+                          value={editingCategoryName}
+                          onChange={e => setEditingCategoryName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleUpdateCategory(cat.id); if (e.key === 'Escape') setEditingCategoryId(null); }}
+                          className="flex-1 px-3 py-1.5 bg-slate-600 border border-slate-500 rounded-lg text-white text-sm focus:outline-none focus:border-accent"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleUpdateCategory(cat.id)}
+                          disabled={savingCategory}
+                          className="p-1.5 text-green-400 hover:bg-green-400/10 rounded-lg transition-colors"
+                          title="Enregistrer"
+                        >
+                          {savingCategory ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                        </button>
+                        <button
+                          onClick={() => setEditingCategoryId(null)}
+                          className="p-1.5 text-slate-400 hover:bg-slate-600 rounded-lg transition-colors"
+                          title="Annuler"
+                        >
+                          <X size={14} />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-white text-sm font-medium truncate">{cat.name}</span>
+                        <span className="text-xs text-slate-400 bg-slate-600 px-2 py-0.5 rounded-full flex-shrink-0">
+                          {cat.questions_count} Q
+                        </span>
+                        <button
+                          onClick={() => { setEditingCategoryId(cat.id); setEditingCategoryName(cat.name); }}
+                          className="p-1.5 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Renommer"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                          title="Supprimer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Filters */}
       <div className="bg-slate-800 rounded-2xl border border-slate-700 p-4">
         <div className="flex flex-col lg:flex-row gap-4">
@@ -310,13 +502,13 @@ const AdminQCM: React.FC = () => {
               type="text"
               placeholder="Rechercher une question..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-12 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:border-accent"
             />
           </div>
           <select
             value={selectedDifficulty}
-            onChange={(e) => setSelectedDifficulty(e.target.value as Difficulty | 'all')}
+            onChange={(e) => { setSelectedDifficulty(e.target.value); setCurrentPage(1); }}
             className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
           >
             <option value="all">Toutes difficultés</option>
@@ -326,22 +518,24 @@ const AdminQCM: React.FC = () => {
           </select>
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value as Category | 'all')}
+            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
             className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
           >
             <option value="all">Toutes catégories</option>
-            <option value="logic">Logique</option>
-            <option value="math">Mathématiques</option>
-            <option value="programming">Programmation</option>
-            <option value="ml">Machine Learning</option>
-            <option value="general">Culture IA</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+            ))}
           </select>
         </div>
       </div>
 
       {/* Questions List */}
       <div className="space-y-4">
-        {filteredQuestions.map((question) => (
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>
+        ) : questions.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">Aucune question trouvée</div>
+        ) : questions.map((question) => (
           <div key={question.id} className="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden">
             <div 
               className="p-6 cursor-pointer hover:bg-slate-700/50 transition-colors"
@@ -350,14 +544,14 @@ const AdminQCM: React.FC = () => {
               <div className="flex items-start gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${difficultyConfig[question.difficulty].className}`}>
-                      {difficultyConfig[question.difficulty].label}
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${(difficultyConfig[question.difficulty] || difficultyConfig.medium).className}`}>
+                      {(difficultyConfig[question.difficulty] || difficultyConfig.medium).label}
                     </span>
-                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${categoryConfig[question.category].className}`}>
-                      {categoryConfig[question.category].label}
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${getCategoryColor(question.category_name)}`}>
+                      {question.category_name}
                     </span>
                     <span className="text-slate-500 text-xs">
-                      {question.points} pts • {question.timeLimit}s
+                      {question.points} pts • {question.time_limit_seconds ?? '-'}s
                     </span>
                   </div>
                   <p className="text-white font-medium">{question.text}</p>
@@ -394,33 +588,33 @@ const AdminQCM: React.FC = () => {
               <div className="px-6 pb-6 border-t border-slate-700 pt-4">
                 <p className="text-slate-400 text-sm mb-3">Options de réponse :</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {question.options.map((option) => (
+                  {question.options.map((option, idx) => (
                     <div 
                       key={option.id}
                       className={`p-3 rounded-xl ${
-                        option.isCorrect 
+                        option.is_correct 
                           ? 'bg-green-500/10 border border-green-500/30' 
                           : 'bg-slate-700/50'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold ${
-                          option.isCorrect ? 'bg-green-500 text-white' : 'bg-slate-600 text-slate-300'
+                          option.is_correct ? 'bg-green-500 text-white' : 'bg-slate-600 text-slate-300'
                         }`}>
-                          {option.id.toUpperCase()}
+                          {optionLabels[idx] || idx + 1}
                         </span>
-                        <span className={option.isCorrect ? 'text-green-400' : 'text-slate-300'}>
+                        <span className={option.is_correct ? 'text-green-400' : 'text-slate-300'}>
                           {option.text}
                         </span>
-                        {option.isCorrect && <CheckCircle size={16} className="text-green-400 ml-auto" />}
+                        {option.is_correct && <CheckCircle size={16} className="text-green-400 ml-auto" />}
                       </div>
                     </div>
                   ))}
                 </div>
                 <div className="mt-4 flex items-center gap-4 text-sm text-slate-500">
-                  <span>Créée le {question.createdAt}</span>
+                  <span>Créée le {new Date(question.created_at).toLocaleDateString('fr-FR')}</span>
                   <span>•</span>
-                  <span>Utilisée {question.usageCount} fois</span>
+                  <span>Utilisée {question.usage_count} fois</span>
                 </div>
               </div>
             )}
@@ -459,32 +653,52 @@ const AdminQCM: React.FC = () => {
 
               {/* Options */}
               <div>
-                <label className="block text-slate-300 font-medium mb-2">Options de réponse *</label>
-                <p className="text-slate-500 text-sm mb-3">Sélectionnez la bonne réponse</p>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-slate-300 font-medium">Options de réponse * ({formData.options.length})</label>
+                  <button
+                    type="button"
+                    onClick={handleAddOption}
+                    disabled={formData.options.length >= MAX_OPTIONS}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 text-accent text-sm font-medium rounded-lg hover:bg-accent/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={14} />
+                    Ajouter une option
+                  </button>
+                </div>
+                <p className="text-slate-500 text-sm mb-3">Cliquez sur la lettre pour marquer la bonne réponse. Min {MIN_OPTIONS}, max {MAX_OPTIONS} options.</p>
                 <div className="space-y-3">
                   {formData.options.map((option, index) => (
-                    <div key={option.id} className="flex items-center gap-3">
+                    <div key={index} className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={() => handleCorrectAnswerChange(index)}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors ${
-                          option.isCorrect 
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0 ${
+                          option.is_correct 
                             ? 'bg-green-500 text-white' 
                             : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
                         }`}
                       >
-                        {option.id.toUpperCase()}
+                        {optionLabels[index] || index + 1}
                       </button>
                       <input
                         type="text"
                         value={option.text}
                         onChange={(e) => handleOptionChange(index, e.target.value)}
                         className="flex-1 px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:border-accent"
-                        placeholder={`Option ${option.id.toUpperCase()}`}
+                        placeholder={`Option ${optionLabels[index] || index + 1}`}
                       />
-                      {option.isCorrect && (
-                        <CheckCircle size={20} className="text-green-400" />
+                      {option.is_correct && (
+                        <CheckCircle size={20} className="text-green-400 flex-shrink-0" />
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveOption(index)}
+                        disabled={formData.options.length <= MIN_OPTIONS}
+                        className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors disabled:opacity-20 disabled:cursor-not-allowed flex-shrink-0"
+                        title="Supprimer cette option"
+                      >
+                        <Minus size={16} />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -508,14 +722,12 @@ const AdminQCM: React.FC = () => {
                   <label className="block text-slate-300 font-medium mb-2">Catégorie</label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
+                    onChange={(e) => setFormData({ ...formData, category: parseInt(e.target.value) })}
                     className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
                   >
-                    <option value="logic">Logique</option>
-                    <option value="math">Mathématiques</option>
-                    <option value="programming">Programmation</option>
-                    <option value="ml">Machine Learning</option>
-                    <option value="general">Culture IA</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -533,8 +745,8 @@ const AdminQCM: React.FC = () => {
                   <label className="block text-slate-300 font-medium mb-2">Temps (sec)</label>
                   <input
                     type="number"
-                    value={formData.timeLimit}
-                    onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 0 })}
+                    value={formData.time_limit_seconds}
+                    onChange={(e) => setFormData({ ...formData, time_limit_seconds: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-2.5 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
                     min={10}
                     max={600}
@@ -552,10 +764,10 @@ const AdminQCM: React.FC = () => {
                 </button>
                 <button
                   onClick={handleSave}
-                  disabled={!formData.text || formData.options.some(o => !o.text) || !formData.options.some(o => o.isCorrect)}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
+                  disabled={saving || !formData.text || formData.options.some(o => !o.text) || !formData.options.some(o => o.is_correct)}
+                  className="flex-1 flex items-center justify-center gap-2 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors disabled:opacity-50"
                 >
-                  <Save size={18} />
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={18} />}
                   {editingQuestion ? 'Enregistrer' : 'Créer'}
                 </button>
               </div>
@@ -564,84 +776,13 @@ const AdminQCM: React.FC = () => {
         </div>
       )}
 
-      {/* Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Paramètres du QCM</h2>
-              <button
-                onClick={() => setShowSettings(false)}
-                className="p-2 hover:bg-slate-700 rounded-lg transition-colors text-slate-400"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">Questions par épreuve</label>
-                <input
-                  type="number"
-                  value={qcmSettings.questionsPerExam}
-                  onChange={(e) => setQcmSettings({ ...qcmSettings, questionsPerExam: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">Durée totale (minutes)</label>
-                <input
-                  type="number"
-                  value={qcmSettings.totalDuration}
-                  onChange={(e) => setQcmSettings({ ...qcmSettings, totalDuration: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label className="block text-slate-300 font-medium mb-2">Score minimum de réussite (%)</label>
-                <input
-                  type="number"
-                  value={qcmSettings.passingScore}
-                  onChange={(e) => setQcmSettings({ ...qcmSettings, passingScore: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
-                  min={0}
-                  max={100}
-                />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-xl">
-                <span className="text-slate-300">Ordre aléatoire des questions</span>
-                <button
-                  onClick={() => setQcmSettings({ ...qcmSettings, randomizeQuestions: !qcmSettings.randomizeQuestions })}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    qcmSettings.randomizeQuestions ? 'bg-accent' : 'bg-slate-600'
-                  }`}
-                >
-                  <span className={`block w-4 h-4 bg-white rounded-full transition-transform ${
-                    qcmSettings.randomizeQuestions ? 'translate-x-7' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-slate-700/50 rounded-xl">
-                <span className="text-slate-300">Afficher corrections après soumission</span>
-                <button
-                  onClick={() => setQcmSettings({ ...qcmSettings, showCorrectAnswers: !qcmSettings.showCorrectAnswers })}
-                  className={`w-12 h-6 rounded-full transition-colors ${
-                    qcmSettings.showCorrectAnswers ? 'bg-accent' : 'bg-slate-600'
-                  }`}
-                >
-                  <span className={`block w-4 h-4 bg-white rounded-full transition-transform ${
-                    qcmSettings.showCorrectAnswers ? 'translate-x-7' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-
-              <button
-                onClick={() => setShowSettings(false)}
-                className="w-full py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors mt-4"
-              >
-                Enregistrer
-              </button>
-            </div>
+      {/* Pagination */}
+      {totalCount > itemsPerPage && (
+        <div className="flex items-center justify-between bg-slate-800 rounded-2xl border border-slate-700 p-4">
+          <p className="text-slate-400 text-sm">Page {currentPage} sur {Math.ceil(totalCount / itemsPerPage)} ({totalCount} questions)</p>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1} className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded-lg disabled:opacity-50">Préc.</button>
+            <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= Math.ceil(totalCount / itemsPerPage)} className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded-lg disabled:opacity-50">Suiv.</button>
           </div>
         </div>
       )}

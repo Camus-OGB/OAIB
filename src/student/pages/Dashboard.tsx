@@ -1,38 +1,71 @@
-import React from 'react';
-import { FileText, Trophy, Clock, TrendingUp, Calendar, ArrowRight } from 'lucide-react';
-
-const stats = [
-  { label: 'Épreuves complétées', value: '3/6', icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
-  { label: 'Score moyen', value: '78%', icon: TrendingUp, color: 'text-accent', bg: 'bg-accent/10' },
-  { label: 'Classement', value: '42ème', icon: Trophy, color: 'text-benin-yellow', bg: 'bg-benin-yellow/10' },
-  { label: 'Temps restant', value: '15j', icon: Clock, color: 'text-benin-red', bg: 'bg-benin-red/10' },
-];
-
-const upcomingExams = [
-  { title: 'Épreuve de Machine Learning', date: '15 Fév 2026', duration: '2h', status: 'À venir' },
-  { title: 'Épreuve de Deep Learning', date: '22 Fév 2026', duration: '2h30', status: 'À venir' },
-  { title: 'Projet Final IA', date: '1 Mars 2026', duration: '4h', status: 'À venir' },
-];
-
-const recentResults = [
-  { title: 'Introduction à l\'IA', score: 85, maxScore: 100, date: '5 Fév 2026' },
-  { title: 'Python pour l\'IA', score: 72, maxScore: 100, date: '1 Fév 2026' },
-  { title: 'Mathématiques pour l\'IA', score: 78, maxScore: 100, date: '28 Jan 2026' },
-];
+import React, { useState, useEffect } from 'react';
+import { FileText, Trophy, Clock, TrendingUp, Calendar, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from '../../features/auth/context/AuthContext';
+import { getMyProfile } from '../../services/candidateService';
+import { getMyExamSessions, listExams } from '../../services/examService';
+import type { CandidateProfile, ExamSession, Exam } from '../../shared/types';
 
 const StudentDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<CandidateProfile | null>(null);
+  const [sessions, setSessions] = useState<ExamSession[]>([]);
+  const [upcomingExams, setUpcomingExams] = useState<Exam[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const [profileRes, sessionsRes, examsRes] = await Promise.all([
+        getMyProfile(),
+        getMyExamSessions(),
+        listExams('status=published'),
+      ]);
+      if (profileRes.data) setProfile(profileRes.data);
+      if (sessionsRes.data) setSessions(sessionsRes.data.results ?? []);
+      if (examsRes.data) setUpcomingExams((examsRes.data.results ?? []).slice(0, 3));
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  const averageScore = completedSessions.length > 0
+    ? Math.round(completedSessions.reduce((acc, s) => acc + (s.percentage || 0), 0) / completedSessions.length)
+    : 0;
+  const bestRank = completedSessions.reduce((best, s) => {
+    if (s.rank && (!best || s.rank < best)) return s.rank;
+    return best;
+  }, null as number | null);
+
+  const stats = [
+    { label: 'Épreuves complétées', value: `${completedSessions.length}/${sessions.length || '-'}`, icon: FileText, color: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Score moyen', value: `${averageScore}%`, icon: TrendingUp, color: 'text-accent', bg: 'bg-accent/10' },
+    { label: 'Classement', value: bestRank ? `${bestRank}ème` : '-', icon: Trophy, color: 'text-benin-yellow', bg: 'bg-benin-yellow/10' },
+    { label: 'Complétion profil', value: profile ? `${profile.profile_completion}%` : '-', icon: Clock, color: 'text-benin-red', bg: 'bg-benin-red/10' },
+  ];
+
+  const recentResults = completedSessions.slice(0, 3);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-8">
       {/* Page title */}
       <div>
-        <h1 className="text-2xl lg:text-3xl font-black text-text">Tableau de bord</h1>
+        <h1 className="text-2xl lg:text-3xl font-black text-text">
+          Bonjour{user ? `, ${user.first_name}` : ''} !
+        </h1>
         <p className="text-text-secondary mt-1">Suivez votre progression dans les Olympiades</p>
       </div>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-border p-5 hover:shadow-lg transition-shadow">
+          <div key={i} className="bg-white/80 rounded-2xl border-2 border-primary/10 p-5 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all">
             <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mb-4`}>
               <stat.icon className={`w-6 h-6 ${stat.color}`} />
             </div>
@@ -44,57 +77,65 @@ const StudentDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming exams */}
-        <div className="bg-white rounded-2xl border border-border p-6">
+        <div className="bg-white/80 rounded-2xl border-2 border-primary/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-text">Prochaines épreuves</h2>
-            <a href="/etudiant/epreuves" className="text-sm text-accent font-medium hover:underline flex items-center gap-1">
+            <a href="/etudiant/epreuves" className="text-sm text-primary font-bold hover:text-accent flex items-center gap-1 transition-colors">
               Voir tout <ArrowRight size={14} />
             </a>
           </div>
           <div className="space-y-4">
-            {upcomingExams.map((exam, i) => (
-              <div key={i} className="flex items-center gap-4 p-4 bg-background rounded-xl">
+            {upcomingExams.length > 0 ? upcomingExams.map((exam) => (
+              <div key={exam.id} className="flex items-center gap-4 p-4 bg-background rounded-xl">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
                   <Calendar className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-text truncate">{exam.title}</p>
-                  <p className="text-sm text-text-secondary">{exam.date} • {exam.duration}</p>
+                  <p className="text-sm text-text-secondary">
+                    {new Date(exam.start_datetime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} • {exam.duration_minutes} min
+                  </p>
                 </div>
                 <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-bold rounded-full shrink-0">
-                  {exam.status}
+                  {exam.status === 'published' ? 'À venir' : exam.status}
                 </span>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-text-secondary text-center py-4">Aucune épreuve à venir</p>
+            )}
           </div>
         </div>
 
         {/* Recent results */}
-        <div className="bg-white rounded-2xl border border-border p-6">
+        <div className="bg-white/80 rounded-2xl border-2 border-primary/10 p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-bold text-text">Derniers résultats</h2>
-            <a href="/etudiant/resultats" className="text-sm text-accent font-medium hover:underline flex items-center gap-1">
+            <a href="/etudiant/resultats" className="text-sm text-primary font-bold hover:text-accent flex items-center gap-1 transition-colors">
               Voir tout <ArrowRight size={14} />
             </a>
           </div>
           <div className="space-y-4">
-            {recentResults.map((result, i) => (
-              <div key={i} className="p-4 bg-background rounded-xl">
+            {recentResults.length > 0 ? recentResults.map((result) => (
+              <div key={result.id} className="p-4 bg-background rounded-xl">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-bold text-text">{result.title}</p>
-                  <p className="text-sm text-text-secondary">{result.date}</p>
+                  <p className="font-bold text-text">{result.exam_title}</p>
+                  <p className="text-sm text-text-secondary">
+                    {result.completed_at ? new Date(result.completed_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-2 bg-border rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${(result.score / result.maxScore) * 100}%` }}
+                      style={{ width: `${result.percentage || 0}%` }}
                     />
                   </div>
-                  <span className="text-sm font-bold text-primary">{result.score}/{result.maxScore}</span>
+                  <span className="text-sm font-bold text-primary">{result.score ?? 0}/{result.max_score ?? 0}</span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-text-secondary text-center py-4">Aucun résultat pour le moment</p>
+            )}
           </div>
         </div>
       </div>
@@ -115,7 +156,7 @@ const StudentDashboard: React.FC = () => {
             </a>
             <a 
               href="/etudiant/epreuves"
-              className="px-6 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent-light transition-colors"
+              className="px-6 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent-light transition-colors"
             >
               Commencer
             </a>

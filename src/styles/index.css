@@ -4,26 +4,42 @@
 
 @theme {
   /* ===== OAIB COLOR PALETTE ===== */
+  /* Based on official OAIB poster design */
 
-  /* Trust Blue - Primary (Lightened) */
-  --color-primary: #0F9DE8;
-  --color-primary-light: #4A5BC2;
-  --color-primary-dark: #007FFF;
+  /* Primary Green - Main brand color from poster (Turquoise émeraude) */
+  --color-primary: #1AA97E;
+  --color-primary-light: #00C2A0;
+  --color-primary-dark: #00916B;
 
-  /* AI Glow - Accent (Innovation & Technology with green tint) */
-  --color-accent: #00E5A0;
-  --color-accent-light: #4DFFBE;
-  --color-accent-dark: #00B87A;
+  /* Primary Blue - Secondary brand color from poster (Bleu marine) */
+  --color-blue: #003F88;
+  --color-blue-light: #1E5AA8;
+  --color-blue-dark: #002855;
 
-  /* Secondary accent - Cyan */
-  --color-cyan: #00D4FF;
-  --color-cyan-light: #4DE8FF;
-  --color-cyan-dark: #00A8CC;
+  /* Accent colors from poster (Turquoise clair) */
+  --color-accent: #00C2A0;
+  --color-accent-light: #26D5B2;
+  --color-accent-dark: #00A88C;
 
-  /* Pattern color for backgrounds */
-  --color-pattern: #007FFF;
-  --color-pattern-light: #3399FF;
-  --color-pattern-dark: #0066CC;
+  /* Red accent - Call-to-action color (Rouge vif du flyer) */
+  --color-red: #E31E24;
+  --color-red-light: #EF4444;
+  --color-red-dark: #B91C1C;
+
+  /* Yellow/Orange accent - Robot details (Jaune or du flyer) */
+  --color-yellow: #FFB800;
+  --color-yellow-light: #FFC933;
+  --color-yellow-dark: #CC9300;
+
+  /* Gradient colors - Modern tech feel (Gradient vert-bleu du flyer) */
+  --color-cyan: #00C2A0;
+  --color-cyan-light: #1AA97E;
+  --color-cyan-dark: #008B72;
+
+  /* Pattern color for backgrounds (Bleu du gradient) */
+  --color-pattern: #003F88;
+  --color-pattern-light: #1E5AA8;
+  --color-pattern-dark: #002855;
 
   /* ===== LIGHT THEME ===== */
   /* Background colors */

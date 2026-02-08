@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, 
   FileText, 
@@ -11,139 +11,36 @@ import {
   Star,
   Play,
   File,
-  Folder
+  Folder,
+  Loader2
 } from 'lucide-react';
+import { listResources } from '../../services/resourceService';
+import type { Resource, ResourceType } from '../../shared/types';
 
-interface Resource {
-  id: string;
-  title: string;
-  description: string;
-  type: 'pdf' | 'video' | 'article' | 'exercise';
-  category: string;
-  phase: number;
-  duration?: string;
-  size?: string;
-  url: string;
-  isNew?: boolean;
-  isRecommended?: boolean;
-}
-
-const resources: Resource[] = [
-  {
-    id: '1',
-    title: 'Introduction à l\'Intelligence Artificielle',
-    description: 'Cours complet sur les fondamentaux de l\'IA et ses applications.',
-    type: 'pdf',
-    category: 'Fondamentaux',
-    phase: 1,
-    size: '2.4 MB',
-    url: '#',
-    isNew: true,
-  },
-  {
-    id: '2',
-    title: 'Les bases de Python pour l\'IA',
-    description: 'Tutoriel vidéo sur la programmation Python orientée Data Science.',
-    type: 'video',
-    category: 'Programmation',
-    phase: 2,
-    duration: '45 min',
-    url: '#',
-    isRecommended: true,
-  },
-  {
-    id: '3',
-    title: 'Algèbre linéaire - Matrices et vecteurs',
-    description: 'Les concepts mathématiques essentiels pour le Machine Learning.',
-    type: 'pdf',
-    category: 'Mathématiques',
-    phase: 2,
-    size: '1.8 MB',
-    url: '#',
-  },
-  {
-    id: '4',
-    title: 'Exercices de logique - Niveau 1',
-    description: 'Série d\'exercices pour préparer le test de logique.',
-    type: 'exercise',
-    category: 'Logique',
-    phase: 1,
-    url: '#',
-    isRecommended: true,
-  },
-  {
-    id: '5',
-    title: 'Introduction au Machine Learning',
-    description: 'Comprendre les algorithmes d\'apprentissage supervisé et non supervisé.',
-    type: 'video',
-    category: 'Machine Learning',
-    phase: 3,
-    duration: '1h 20min',
-    url: '#',
-  },
-  {
-    id: '6',
-    title: 'Probabilités et Statistiques',
-    description: 'Les bases statistiques pour l\'analyse de données.',
-    type: 'article',
-    category: 'Mathématiques',
-    phase: 2,
-    duration: '15 min de lecture',
-    url: '#',
-  },
-  {
-    id: '7',
-    title: 'Deep Learning - Réseaux de neurones',
-    description: 'Architecture et fonctionnement des réseaux de neurones artificiels.',
-    type: 'pdf',
-    category: 'Deep Learning',
-    phase: 4,
-    size: '3.2 MB',
-    url: '#',
-    isNew: true,
-  },
-  {
-    id: '8',
-    title: 'Exercices pratiques Python',
-    description: 'Mise en pratique avec des exercices de programmation.',
-    type: 'exercise',
-    category: 'Programmation',
-    phase: 2,
-    url: '#',
-  },
-];
-
-const categories = ['Tous', 'Fondamentaux', 'Mathématiques', 'Programmation', 'Logique', 'Machine Learning', 'Deep Learning'];
-const types = ['Tous', 'pdf', 'video', 'article', 'exercise'];
-
-const typeConfig = {
+const typeConfig: Record<string, { icon: React.ElementType; label: string; color: string; bg: string }> = {
   pdf: { icon: FileText, label: 'PDF', color: 'text-red-500', bg: 'bg-red-100' },
   video: { icon: Video, label: 'Vidéo', color: 'text-blue-500', bg: 'bg-blue-100' },
   article: { icon: BookOpen, label: 'Article', color: 'text-green-500', bg: 'bg-green-100' },
   exercise: { icon: File, label: 'Exercice', color: 'text-purple-500', bg: 'bg-purple-100' },
+  link: { icon: ExternalLink, label: 'Lien', color: 'text-orange-500', bg: 'bg-orange-100' },
 };
 
 const ResourceCard: React.FC<{ resource: Resource }> = ({ resource }) => {
-  const config = typeConfig[resource.type];
+  const config = typeConfig[resource.resource_type] || typeConfig.link;
   const Icon = config.icon;
+  const isNew = new Date().getTime() - new Date(resource.created_at).getTime() < 7 * 24 * 60 * 60 * 1000;
 
   return (
-    <div className="bg-white rounded-2xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all group">
+    <div className="bg-white/80 rounded-2xl border border-border p-5 hover:shadow-lg hover:border-primary/30 transition-all group">
       <div className="flex items-start gap-4">
         <div className={`w-12 h-12 ${config.bg} rounded-xl flex items-center justify-center shrink-0`}>
           <Icon className={`w-6 h-6 ${config.color}`} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            {resource.isNew && (
-              <span className="px-2 py-0.5 bg-accent text-primary text-xs font-bold rounded-full">
+            {isNew && (
+              <span className="px-2 py-0.5 bg-accent text-white text-xs font-bold rounded-full">
                 Nouveau
-              </span>
-            )}
-            {resource.isRecommended && (
-              <span className="px-2 py-0.5 bg-benin-yellow/20 text-benin-yellow text-xs font-bold rounded-full flex items-center gap-1">
-                <Star size={10} fill="currentColor" />
-                Recommandé
               </span>
             )}
           </div>
@@ -156,18 +53,8 @@ const ResourceCard: React.FC<{ resource: Resource }> = ({ resource }) => {
           
           <div className="flex items-center gap-3 mt-3 text-xs text-text-muted">
             <span className="px-2 py-1 bg-background rounded-lg">{resource.category}</span>
-            <span className="px-2 py-1 bg-background rounded-lg">Phase {resource.phase}</span>
-            {resource.duration && (
-              <span className="flex items-center gap-1">
-                <Clock size={12} />
-                {resource.duration}
-              </span>
-            )}
-            {resource.size && (
-              <span className="flex items-center gap-1">
-                <Download size={12} />
-                {resource.size}
-              </span>
+            {resource.phase && (
+              <span className="px-2 py-1 bg-background rounded-lg">Phase {resource.phase}</span>
             )}
           </div>
         </div>
@@ -178,20 +65,22 @@ const ResourceCard: React.FC<{ resource: Resource }> = ({ resource }) => {
           {config.label}
         </span>
         <a 
-          href={resource.url}
+          href={resource.file || resource.url}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary hover:text-white transition-all"
         >
-          {resource.type === 'video' ? (
+          {resource.resource_type === 'video' ? (
             <>
               <Play size={16} />
               Regarder
             </>
-          ) : resource.type === 'pdf' ? (
+          ) : resource.resource_type === 'pdf' ? (
             <>
               <Download size={16} />
               Télécharger
             </>
-          ) : resource.type === 'exercise' ? (
+          ) : resource.resource_type === 'exercise' ? (
             <>
               <ExternalLink size={16} />
               Commencer
@@ -199,7 +88,7 @@ const ResourceCard: React.FC<{ resource: Resource }> = ({ resource }) => {
           ) : (
             <>
               <ExternalLink size={16} />
-              Lire
+              Ouvrir
             </>
           )}
         </a>
@@ -209,22 +98,41 @@ const ResourceCard: React.FC<{ resource: Resource }> = ({ resource }) => {
 };
 
 const StudentResources: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [resources, setResources] = useState<Resource[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [selectedType, setSelectedType] = useState('Tous');
-  const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await listResources('is_active=true');
+        if (res.ok) setResources(res.data.results ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
+
+  const categories = ['Tous', ...Array.from(new Set(resources.map(r => r.category).filter(Boolean)))];
 
   const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          resource.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'Tous' || resource.category === selectedCategory;
-    const matchesType = selectedType === 'Tous' || resource.type === selectedType;
-    const matchesPhase = selectedPhase === null || resource.phase === selectedPhase;
+    const matchesType = selectedType === 'Tous' || resource.resource_type === selectedType;
     
-    return matchesSearch && matchesCategory && matchesType && matchesPhase;
+    return matchesSearch && matchesCategory && matchesType;
   });
 
-  const recommendedResources = resources.filter(r => r.isRecommended);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -253,7 +161,7 @@ const StudentResources: React.FC = () => {
               <FileText className="w-5 h-5 text-red-500" />
             </div>
             <div>
-              <p className="text-xl font-black text-text">{resources.filter(r => r.type === 'pdf').length}</p>
+              <p className="text-xl font-black text-text">{resources.filter(r => r.resource_type === 'pdf').length}</p>
               <p className="text-xs text-text-secondary">Documents PDF</p>
             </div>
           </div>
@@ -264,7 +172,7 @@ const StudentResources: React.FC = () => {
               <Video className="w-5 h-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-xl font-black text-text">{resources.filter(r => r.type === 'video').length}</p>
+              <p className="text-xl font-black text-text">{resources.filter(r => r.resource_type === 'video').length}</p>
               <p className="text-xs text-text-secondary">Vidéos</p>
             </div>
           </div>
@@ -275,27 +183,12 @@ const StudentResources: React.FC = () => {
               <File className="w-5 h-5 text-purple-500" />
             </div>
             <div>
-              <p className="text-xl font-black text-text">{resources.filter(r => r.type === 'exercise').length}</p>
+              <p className="text-xl font-black text-text">{resources.filter(r => r.resource_type === 'exercise').length}</p>
               <p className="text-xs text-text-secondary">Exercices</p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Recommended section */}
-      {recommendedResources.length > 0 && (
-        <div>
-          <h2 className="text-lg font-bold text-text mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-benin-yellow" fill="currentColor" />
-            Recommandés pour vous
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {recommendedResources.slice(0, 2).map(resource => (
-              <ResourceCard key={resource.id} resource={resource} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Search and filters */}
       <div className="bg-white rounded-2xl border border-border p-4">
@@ -325,17 +218,7 @@ const StudentResources: React.FC = () => {
             <option value="exercise">Exercices</option>
           </select>
 
-          {/* Phase filter */}
-          <select
-            value={selectedPhase || ''}
-            onChange={(e) => setSelectedPhase(e.target.value ? Number(e.target.value) : null)}
-            className="px-4 py-3 bg-background border border-border rounded-xl text-text focus:outline-none focus:border-primary"
-          >
-            <option value="">Toutes les phases</option>
-            {[1, 2, 3, 4, 5, 6].map(phase => (
-              <option key={phase} value={phase}>Phase {phase}</option>
-            ))}
-          </select>
+
         </div>
 
         {/* Category pills */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   TrendingDown,
@@ -7,14 +7,16 @@ import {
   Award,
   MapPin,
   Download,
-  Calendar,
   BarChart3,
   PieChart,
   Activity,
   FileText,
-  ChevronDown,
-  RefreshCw
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
+import { getCandidateStats, listCandidates } from '../../services/candidateService';
+import { listExamSessions, listCategories } from '../../services/examService';
+import type { ExamSession, QuestionCategory } from '../../shared/types';
 
 interface StatCard {
   label: string;
@@ -30,91 +32,122 @@ interface RegionData {
   percentage: number;
 }
 
-interface GenderData {
-  gender: string;
-  count: number;
-  percentage: number;
-}
-
 interface QCMAnalytics {
   category: string;
-  avgScore: number;
   totalQuestions: number;
-  correctRate: number;
 }
 
-const mockStats: StatCard[] = [
-  { label: 'Total Inscrits', value: 2847, change: 15.3, icon: Users, color: 'accent' },
-  { label: 'Dossiers Validés', value: 1523, change: 8.7, icon: GraduationCap, color: 'green' },
-  { label: 'QCM Passés', value: 1102, change: 12.1, icon: Activity, color: 'blue' },
-  { label: 'Score Moyen', value: '68%', change: -2.3, icon: Award, color: 'purple' },
-];
-
-const mockRegionData: RegionData[] = [
-  { name: 'Littoral', candidates: 856, percentage: 30.1 },
-  { name: 'Atlantique', candidates: 512, percentage: 18.0 },
-  { name: 'Ouémé', candidates: 423, percentage: 14.9 },
-  { name: 'Borgou', candidates: 298, percentage: 10.5 },
-  { name: 'Zou', candidates: 215, percentage: 7.5 },
-  { name: 'Collines', candidates: 178, percentage: 6.2 },
-  { name: 'Atacora', candidates: 145, percentage: 5.1 },
-  { name: 'Mono', candidates: 98, percentage: 3.4 },
-  { name: 'Autres', candidates: 122, percentage: 4.3 },
-];
-
-const mockGenderData: GenderData[] = [
-  { gender: 'Masculin', count: 1652, percentage: 58 },
-  { gender: 'Féminin', count: 1195, percentage: 42 },
-];
-
-const mockQCMAnalytics: QCMAnalytics[] = [
-  { category: 'Logique', avgScore: 72, totalQuestions: 45, correctRate: 68 },
-  { category: 'Mathématiques', avgScore: 65, totalQuestions: 38, correctRate: 62 },
-  { category: 'Programmation', avgScore: 58, totalQuestions: 32, correctRate: 55 },
-  { category: 'Machine Learning', avgScore: 61, totalQuestions: 28, correctRate: 58 },
-  { category: 'Culture IA', avgScore: 78, totalQuestions: 25, correctRate: 75 },
-];
-
-const mockDailyRegistrations = [
-  { date: '01/01', count: 45 },
-  { date: '02/01', count: 62 },
-  { date: '03/01', count: 58 },
-  { date: '04/01', count: 89 },
-  { date: '05/01', count: 102 },
-  { date: '06/01', count: 78 },
-  { date: '07/01', count: 95 },
-  { date: '08/01', count: 112 },
-  { date: '09/01', count: 98 },
-  { date: '10/01', count: 135 },
-  { date: '11/01', count: 145 },
-  { date: '12/01', count: 128 },
-  { date: '13/01', count: 156 },
-  { date: '14/01', count: 142 },
-];
-
-const mockScoreDistribution = [
-  { range: '0-20', count: 23 },
-  { range: '21-40', count: 87 },
-  { range: '41-60', count: 245 },
-  { range: '61-80', count: 512 },
-  { range: '81-100', count: 235 },
-];
+interface ScoreRange {
+  range: string;
+  count: number;
+}
 
 const AdminStatistics: React.FC = () => {
   const [dateRange, setDateRange] = useState('month');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Data state
+  const [stats, setStats] = useState<StatCard[]>([]);
+  const [regionData, setRegionData] = useState<RegionData[]>([]);
+  const [genderData, setGenderData] = useState<{ gender: string; count: number; percentage: number }[]>([]);
+  const [qcmAnalytics, setQcmAnalytics] = useState<QCMAnalytics[]>([]);
+  const [scoreDistribution, setScoreDistribution] = useState<ScoreRange[]>([]);
+  const [sessions, setSessions] = useState<ExamSession[]>([]);
+
+  const fetchAllData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [candidateStatsRes, candidateRes, sessionRes, categoriesRes] = await Promise.all([
+        getCandidateStats().catch(() => ({ ok: false, data: null, error: null })),
+        listCandidates('page_size=1').catch(() => ({ ok: false, data: null, error: null })),
+        listExamSessions('page_size=200').catch(() => ({ ok: false, data: null, error: null })),
+        listCategories().catch(() => ({ ok: false, data: null, error: null })),
+      ]);
+
+      const candidateStats = (candidateStatsRes as any).data ?? {};
+      const allSessions = sessionRes.data?.results ?? [];
+      const categoryList = categoriesRes.data?.results ?? [];
+
+      // KPI cards
+      const totalInscrits = candidateStats.total ?? candidateRes.data?.count ?? 0;
+      const validated = candidateStats.approved ?? 0;
+      const sessionsCompleted = allSessions.filter((s: ExamSession) => s.status === 'completed').length;
+      const completedSessions = allSessions.filter((s: ExamSession) => s.status === 'completed');
+      const avgScore = completedSessions.length > 0
+        ? Math.round(completedSessions.reduce((sum: number, s: ExamSession) => sum + (s.percentage || 0), 0) / completedSessions.length)
+        : 0;
+
+      setStats([
+        { label: 'Total Inscrits', value: totalInscrits, change: 0, icon: Users, color: 'accent' },
+        { label: 'Dossiers Validés', value: validated, change: 0, icon: GraduationCap, color: 'green' },
+        { label: 'QCM Passés', value: sessionsCompleted, change: 0, icon: Activity, color: 'blue' },
+        { label: 'Score Moyen', value: `${avgScore}%`, change: 0, icon: Award, color: 'purple' },
+      ]);
+
+      // Score distribution from sessions
+      const ranges: ScoreRange[] = [
+        { range: '0-20', count: 0 },
+        { range: '21-40', count: 0 },
+        { range: '41-60', count: 0 },
+        { range: '61-80', count: 0 },
+        { range: '81-100', count: 0 },
+      ];
+      completedSessions.forEach((s: ExamSession) => {
+        const pct = s.percentage || 0;
+        if (pct <= 20) ranges[0].count++;
+        else if (pct <= 40) ranges[1].count++;
+        else if (pct <= 60) ranges[2].count++;
+        else if (pct <= 80) ranges[3].count++;
+        else ranges[4].count++;
+      });
+      setScoreDistribution(ranges);
+      setSessions(allSessions);
+
+      // QCM analytics from categories
+      setQcmAnalytics(
+        categoryList.map((c: QuestionCategory) => ({
+          category: c.name,
+          totalQuestions: c.questions_count || 0,
+        }))
+      );
+
+      // Region/Gender — from candidateStats if available, otherwise empty
+      const regionEntries = Object.entries(candidateStats)
+        .filter(([k]) => k.startsWith('region_'))
+        .map(([k, v]) => ({ name: k.replace('region_', ''), candidates: v, percentage: totalInscrits > 0 ? Math.round((v / totalInscrits) * 100 * 10) / 10 : 0 }));
+      setRegionData(regionEntries.length > 0 ? regionEntries : []);
+
+      const male = candidateStats.male ?? 0;
+      const female = candidateStats.female ?? 0;
+      const genderTotal = male + female;
+      if (genderTotal > 0) {
+        setGenderData([
+          { gender: 'Masculin', count: male, percentage: Math.round((male / genderTotal) * 100) },
+          { gender: 'Féminin', count: female, percentage: Math.round((female / genderTotal) * 100) },
+        ]);
+      } else {
+        setGenderData([]);
+      }
+    } catch (err) {
+      console.error('Erreur chargement statistiques:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAllData(); }, [fetchAllData]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1000);
+    fetchAllData().finally(() => setIsRefreshing(false));
   };
 
   const handleExportPDF = () => {
     alert('Export PDF en cours de développement');
   };
 
-  const maxRegistration = Math.max(...mockDailyRegistrations.map(d => d.count));
-  const maxScore = Math.max(...mockScoreDistribution.map(d => d.count));
+  const maxScore = Math.max(...scoreDistribution.map(d => d.count), 1);
 
   return (
     <div className="space-y-6">
@@ -143,7 +176,7 @@ const AdminStatistics: React.FC = () => {
           </button>
           <button
             onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors"
           >
             <Download size={18} />
             Rapport PDF
@@ -152,8 +185,13 @@ const AdminStatistics: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 text-accent animate-spin" />
+        </div>
+      ) : (<>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockStats.map((stat, index) => (
+        {stats.map((stat, index) => (
           <div key={index} className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className={`p-3 rounded-xl ${
@@ -184,27 +222,34 @@ const AdminStatistics: React.FC = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Registrations Chart */}
+        {/* Sessions Chart */}
         <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="text-white font-bold text-lg">Inscriptions quotidiennes</h3>
-              <p className="text-slate-400 text-sm">Évolution des inscriptions</p>
+              <h3 className="text-white font-bold text-lg">Sessions d'examen</h3>
+              <p className="text-slate-400 text-sm">{sessions.length} session(s) au total</p>
             </div>
             <BarChart3 className="w-5 h-5 text-slate-500" />
           </div>
+          {sessions.length === 0 ? (
+            <div className="h-64 flex items-center justify-center text-slate-500">Aucune session disponible</div>
+          ) : (
           <div className="h-64 flex items-end gap-2">
-            {mockDailyRegistrations.map((day, index) => (
+            {sessions.slice(0, 20).map((session, index) => {
+              const pct = session.percentage || 0;
+              return (
               <div key={index} className="flex-1 flex flex-col items-center gap-2">
                 <div 
-                  className="w-full bg-accent/80 rounded-t-lg transition-all hover:bg-accent"
-                  style={{ height: `${(day.count / maxRegistration) * 200}px` }}
-                  title={`${day.date}: ${day.count} inscrits`}
+                  className={`w-full rounded-t-lg transition-all ${pct >= 60 ? 'bg-green-500/80 hover:bg-green-500' : pct >= 40 ? 'bg-yellow-500/80 hover:bg-yellow-500' : 'bg-red-500/80 hover:bg-red-500'}`}
+                  style={{ height: `${Math.max(pct * 2, 4)}px` }}
+                  title={`${session.candidate_name || `#${session.id}`}: ${pct}%`}
                 />
-                <span className="text-[10px] text-slate-500 -rotate-45">{day.date}</span>
+                <span className="text-[10px] text-slate-500 -rotate-45">#{session.id}</span>
               </div>
-            ))}
+              );
+            })}
           </div>
+          )}
         </div>
 
         {/* Score Distribution */}
@@ -217,7 +262,7 @@ const AdminStatistics: React.FC = () => {
             <PieChart className="w-5 h-5 text-slate-500" />
           </div>
           <div className="space-y-4">
-            {mockScoreDistribution.map((range, index) => (
+            {scoreDistribution.map((range, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-300">{range.range}%</span>
@@ -253,7 +298,9 @@ const AdminStatistics: React.FC = () => {
             <MapPin className="w-5 h-5 text-slate-500" />
           </div>
           <div className="space-y-3">
-            {mockRegionData.map((region, index) => (
+            {regionData.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">Données régionales non disponibles</div>
+            ) : regionData.map((region, index) => (
               <div key={index} className="flex items-center gap-4">
                 <span className="text-slate-300 w-24 text-sm">{region.name}</span>
                 <div className="flex-1 h-6 bg-slate-700 rounded-full overflow-hidden">
@@ -281,6 +328,9 @@ const AdminStatistics: React.FC = () => {
             </div>
             <Users className="w-5 h-5 text-slate-500" />
           </div>
+          {genderData.length < 2 ? (
+            <div className="text-center py-16 text-slate-500">Données non disponibles</div>
+          ) : (<>
           <div className="relative w-48 h-48 mx-auto mb-6">
             {/* Simple pie chart */}
             <svg viewBox="0 0 100 100" className="transform -rotate-90">
@@ -291,7 +341,7 @@ const AdminStatistics: React.FC = () => {
                 fill="transparent"
                 stroke="#3b82f6"
                 strokeWidth="20"
-                strokeDasharray={`${mockGenderData[0].percentage * 2.51} 251`}
+                strokeDasharray={`${genderData[0].percentage * 2.51} 251`}
               />
               <circle
                 cx="50"
@@ -300,19 +350,19 @@ const AdminStatistics: React.FC = () => {
                 fill="transparent"
                 stroke="#ec4899"
                 strokeWidth="20"
-                strokeDasharray={`${mockGenderData[1].percentage * 2.51} 251`}
-                strokeDashoffset={`-${mockGenderData[0].percentage * 2.51}`}
+                strokeDasharray={`${genderData[1].percentage * 2.51} 251`}
+                strokeDashoffset={`-${genderData[0].percentage * 2.51}`}
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <p className="text-3xl font-bold text-white">{mockGenderData[0].count + mockGenderData[1].count}</p>
+                <p className="text-3xl font-bold text-white">{genderData[0].count + genderData[1].count}</p>
                 <p className="text-slate-400 text-sm">Total</p>
               </div>
             </div>
           </div>
           <div className="space-y-3">
-            {mockGenderData.map((data, index) => (
+            {genderData.map((data, index) => (
               <div key={index} className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-blue-500' : 'bg-pink-500'}`} />
@@ -322,102 +372,11 @@ const AdminStatistics: React.FC = () => {
               </div>
             ))}
           </div>
+          </>)}
         </div>
       </div>
 
-      {/* QCM Analytics */}
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-white font-bold text-lg">Analyse des performances QCM</h3>
-            <p className="text-slate-400 text-sm">Par catégorie de questions</p>
-          </div>
-          <Activity className="w-5 h-5 text-slate-500" />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Catégorie</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Questions</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Score moyen</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Taux de réussite</th>
-                <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Performance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700">
-              {mockQCMAnalytics.map((item, index) => (
-                <tr key={index} className="hover:bg-slate-700/50 transition-colors">
-                  <td className="py-4 px-4">
-                    <span className="text-white font-medium">{item.category}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-slate-300">{item.totalQuestions}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`font-bold ${
-                      item.avgScore >= 70 ? 'text-green-400' :
-                      item.avgScore >= 50 ? 'text-yellow-400' :
-                      'text-red-400'
-                    }`}>
-                      {item.avgScore}%
-                    </span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className="text-slate-300">{item.correctRate}%</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${
-                          item.correctRate >= 70 ? 'bg-green-500' :
-                          item.correctRate >= 50 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${item.correctRate}%` }}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Quick Reports */}
-      <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6">
-        <h3 className="text-white font-bold text-lg mb-4">Rapports rapides</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors text-left">
-            <div className="p-3 bg-accent/20 rounded-xl">
-              <FileText className="w-6 h-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-white font-medium">Rapport d'inscriptions</p>
-              <p className="text-slate-400 text-sm">Liste complète des candidats</p>
-            </div>
-          </button>
-          <button className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors text-left">
-            <div className="p-3 bg-green-500/20 rounded-xl">
-              <FileText className="w-6 h-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-white font-medium">Résultats QCM</p>
-              <p className="text-slate-400 text-sm">Scores détaillés par candidat</p>
-            </div>
-          </button>
-          <button className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl hover:bg-slate-700 transition-colors text-left">
-            <div className="p-3 bg-purple-500/20 rounded-xl">
-              <FileText className="w-6 h-6 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-white font-medium">Analyse régionale</p>
-              <p className="text-slate-400 text-sm">Statistiques par département</p>
-            </div>
-          </button>
-        </div>
-      </div>
+      </>)}
     </div>
   );
 };

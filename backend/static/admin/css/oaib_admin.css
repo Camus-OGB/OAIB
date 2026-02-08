@@ -1,0 +1,111 @@
+/* OAIB Admin — Custom theme */
+
+/* ===== Header & branding ===== */
+#header {
+    background: #1a7f37;
+    color: #fff;
+}
+#header a:link, #header a:visited, #header a:hover {
+    color: #fff;
+}
+#branding h1, #branding h1 a:link, #branding h1 a:visited {
+    color: #fff;
+}
+#user-tools {
+    color: #d4edda;
+}
+#user-tools a {
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+
+/* ===== Modules with green header (caption) ===== */
+.module > h2, .module > caption,
+.module > table > caption,
+#content .module > h2 {
+    background: #1a7f37;
+    color: #fff !important;
+}
+.module > h2 a, .module > caption a,
+.module > table > caption a {
+    color: #fff !important;
+}
+
+/* ===== Breadcrumbs ===== */
+div.breadcrumbs {
+    background: #15632c;
+    color: #d4edda;
+}
+div.breadcrumbs a {
+    color: #fff;
+}
+
+/* ===== Action bar (object tools, changelist actions) ===== */
+.object-tools a:link, .object-tools a:visited {
+    background: #1a7f37;
+    color: #fff;
+}
+.object-tools a:hover, .object-tools a:focus {
+    background: #15632c;
+    color: #fff;
+}
+
+/* ===== Buttons ===== */
+input[type="submit"], button[type="submit"],
+.submit-row input, .submit-row a.button {
+    background: #1a7f37;
+    color: #fff;
+}
+input[type="submit"]:hover, button[type="submit"]:hover {
+    background: #15632c;
+    color: #fff;
+}
+.button.default, input.default {
+    background: #1a7f37;
+    color: #fff;
+}
+
+/* ===== Links in content ===== */
+a:link, a:visited {
+    color: #1a7f37;
+}
+a:hover, a:focus {
+    color: #15632c;
+}
+
+/* ===== Sidebar nav ===== */
+#nav-sidebar .module h2 {
+    background: #1a7f37;
+    color: #fff;
+}
+#nav-sidebar .current-app a,
+#nav-sidebar a:link, #nav-sidebar a:visited {
+    color: #1a7f37;
+}
+
+/* ===== Tabs ===== */
+.tabs .active a {
+    background: #1a7f37;
+    color: #fff;
+}
+
+/* ===== Success messages (already green, ensure white text) ===== */
+.messagelist .success {
+    background: #1a7f37;
+    color: #fff;
+}
+
+/* ===== Delete / danger buttons stay red ===== */
+.deletelink, a.deletelink,
+input[type="submit"].default[name="post"][value*="Oui"],
+.button.cancel-link {
+    background: #ba2121;
+    color: #fff;
+}
+
+/* ===== Calendar & date widgets ===== */
+.calendar td.today a, .calendarnav a:hover,
+.calendarbox .calendarnav a:hover {
+    background: #1a7f37;
+    color: #fff;
+}

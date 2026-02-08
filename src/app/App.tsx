@@ -42,7 +42,9 @@ const AdminUsers = lazy(() => import('../admin/pages/Users'));
 const AdminStudents = lazy(() => import('../admin/pages/Students'));
 const AdminCandidates = lazy(() => import('../admin/pages/Candidates'));
 const AdminQCM = lazy(() => import('../admin/pages/QCM'));
+const AdminExams = lazy(() => import('../admin/pages/Exams'));
 const AdminContent = lazy(() => import('../admin/pages/Content'));
+const AdminSiteConfig = lazy(() => import('../admin/pages/SiteConfig'));
 const AdminStatistics = lazy(() => import('../admin/pages/Statistics'));
 const AdminResults = lazy(() => import('../admin/pages/Results'));
 const AdminSettings = lazy(() => import('../admin/pages/Settings'));
@@ -104,7 +106,9 @@ const App: React.FC = () => {
                 <Route path="etudiants" element={<AdminStudents />} />
                 <Route path="candidatures" element={<AdminCandidates />} />
                 <Route path="qcm" element={<AdminQCM />} />
+                <Route path="epreuves" element={<AdminExams />} />
                 <Route path="contenu" element={<AdminContent />} />
+                <Route path="config-site" element={<AdminSiteConfig />} />
                 <Route path="statistiques" element={<AdminStatistics />} />
                 <Route path="resultats" element={<AdminResults />} />
                 <Route path="parametres" element={<AdminSettings />} />

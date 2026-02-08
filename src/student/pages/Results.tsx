@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trophy, 
   TrendingUp, 
@@ -10,80 +10,11 @@ import {
   ChevronDown,
   ChevronUp,
   BarChart3,
-  PieChart
+  PieChart,
+  Loader2
 } from 'lucide-react';
-
-interface ExamResult {
-  id: string;
-  title: string;
-  phase: number;
-  score: number;
-  maxScore: number;
-  date: string;
-  duration: string;
-  rank?: number;
-  totalParticipants?: number;
-  categories: {
-    name: string;
-    score: number;
-    maxScore: number;
-  }[];
-}
-
-const results: ExamResult[] = [
-  {
-    id: '1',
-    title: 'Test de Logique - Phase 1',
-    phase: 1,
-    score: 85,
-    maxScore: 100,
-    date: '20 Jan 2026',
-    duration: '25 min',
-    rank: 42,
-    totalParticipants: 1250,
-    categories: [
-      { name: 'Raisonnement logique', score: 18, maxScore: 20 },
-      { name: 'Suites numériques', score: 15, maxScore: 20 },
-      { name: 'Analogies', score: 17, maxScore: 20 },
-      { name: 'Déduction', score: 18, maxScore: 20 },
-      { name: 'Problèmes', score: 17, maxScore: 20 },
-    ],
-  },
-  {
-    id: '2',
-    title: 'Mathématiques pour l\'IA',
-    phase: 2,
-    score: 72,
-    maxScore: 100,
-    date: '28 Jan 2026',
-    duration: '38 min',
-    rank: 156,
-    totalParticipants: 980,
-    categories: [
-      { name: 'Algèbre linéaire', score: 14, maxScore: 25 },
-      { name: 'Probabilités', score: 20, maxScore: 25 },
-      { name: 'Statistiques', score: 18, maxScore: 25 },
-      { name: 'Calcul différentiel', score: 20, maxScore: 25 },
-    ],
-  },
-  {
-    id: '3',
-    title: 'Python pour l\'IA',
-    phase: 3,
-    score: 78,
-    maxScore: 100,
-    date: '1 Fév 2026',
-    duration: '52 min',
-    rank: 89,
-    totalParticipants: 850,
-    categories: [
-      { name: 'Syntaxe de base', score: 25, maxScore: 25 },
-      { name: 'Structures de données', score: 18, maxScore: 25 },
-      { name: 'Fonctions', score: 20, maxScore: 25 },
-      { name: 'POO', score: 15, maxScore: 25 },
-    ],
-  },
-];
+import { getMyExamSessions } from '../../services/examService';
+import type { ExamSession } from '../../shared/types';
 
 const getScoreColor = (percentage: number): string => {
   if (percentage >= 80) return 'text-green-600';
@@ -97,12 +28,17 @@ const getScoreBgColor = (percentage: number): string => {
   return 'bg-benin-red';
 };
 
-const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
+const ResultCard: React.FC<{ result: ExamSession }> = ({ result }) => {
   const [expanded, setExpanded] = useState(false);
-  const percentage = (result.score / result.maxScore) * 100;
+  const percentage = result.percentage ?? 0;
+  const duration = result.time_spent_seconds ? `${Math.floor(result.time_spent_seconds / 60)} min` : '—';
+  const date = result.completed_at ? new Date(result.completed_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  const categories = result.category_scores
+    ? Object.entries(result.category_scores as Record<string, { score: number; max_score: number }>)
+    : [];
 
   return (
-    <div className="bg-white rounded-2xl border border-border overflow-hidden">
+    <div className="bg-white/80 rounded-2xl border border-border overflow-hidden">
       <div 
         className="p-6 cursor-pointer hover:bg-background-alt/50 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -112,20 +48,18 @@ const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
             <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
               percentage >= 80 ? 'bg-green-100' : percentage >= 60 ? 'bg-benin-yellow/20' : 'bg-red-100'
             }`}>
-              <span className={`text-xl font-black ${getScoreColor(percentage)}`}>
-                {result.phase}
-              </span>
+              <Trophy className={`w-6 h-6 ${getScoreColor(percentage)}`} />
             </div>
             <div>
-              <h3 className="font-bold text-text">{result.title}</h3>
+              <h3 className="font-bold text-text">{result.exam_title}</h3>
               <div className="flex items-center gap-3 mt-1 text-sm text-text-secondary">
                 <span className="flex items-center gap-1">
                   <Calendar size={14} />
-                  {result.date}
+                  {date}
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock size={14} />
-                  {result.duration}
+                  {duration}
                 </span>
               </div>
             </div>
@@ -133,11 +67,11 @@ const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
 
           <div className="text-right">
             <div className={`text-2xl font-black ${getScoreColor(percentage)}`}>
-              {result.score}%
+              {percentage.toFixed(0)}%
             </div>
             {result.rank && (
               <div className="text-sm text-text-secondary mt-1">
-                #{result.rank} / {result.totalParticipants}
+                #{result.rank}
               </div>
             )}
           </div>
@@ -157,18 +91,18 @@ const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
       </div>
 
       {/* Expanded details */}
-      {expanded && (
+      {expanded && categories.length > 0 && (
         <div className="px-6 pb-6 pt-2 border-t border-border">
           <h4 className="font-bold text-text mb-4">Détails par catégorie</h4>
           <div className="space-y-3">
-            {result.categories.map((cat, i) => {
-              const catPercentage = (cat.score / cat.maxScore) * 100;
+            {categories.map(([name, data], i) => {
+              const catPercentage = data.max_score > 0 ? (data.score / data.max_score) * 100 : 0;
               return (
                 <div key={i}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-text-secondary">{cat.name}</span>
+                    <span className="text-text-secondary">{name}</span>
                     <span className={`font-bold ${getScoreColor(catPercentage)}`}>
-                      {cat.score}/{cat.maxScore}
+                      {data.score}/{data.max_score}
                     </span>
                   </div>
                   <div className="h-2 bg-border rounded-full overflow-hidden">
@@ -191,7 +125,7 @@ const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
                 <div>
                   <p className="text-sm text-text-secondary">Votre classement</p>
                   <p className="font-bold text-text">
-                    {result.rank}ème sur {result.totalParticipants} participants
+                    {result.rank}ème
                   </p>
                 </div>
               </div>
@@ -204,18 +138,43 @@ const ResultCard: React.FC<{ result: ExamResult }> = ({ result }) => {
 };
 
 const StudentResults: React.FC = () => {
-  const totalScore = results.reduce((acc, r) => acc + r.score, 0);
-  const maxTotalScore = results.reduce((acc, r) => acc + r.maxScore, 0);
-  const averageScore = totalScore / results.length;
-  
-  const bestResult = results.reduce((best, r) => 
-    r.score > best.score ? r : best, results[0]);
-  
-  const latestResult = results[results.length - 1];
-  const previousResult = results[results.length - 2];
-  const trend = latestResult && previousResult 
-    ? latestResult.score - previousResult.score 
+  const [loading, setLoading] = useState(true);
+  const [results, setResults] = useState<ExamSession[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await getMyExamSessions('status=completed');
+        if (res.ok) setResults(res.data.results ?? []);
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  const completedResults = results.filter(r => r.percentage !== null);
+  const averageScore = completedResults.length > 0
+    ? completedResults.reduce((acc, r) => acc + (r.percentage ?? 0), 0) / completedResults.length
     : 0;
+  
+  const bestResult = completedResults.length > 0
+    ? completedResults.reduce((best, r) => (r.percentage ?? 0) > (best.percentage ?? 0) ? r : best, completedResults[0])
+    : null;
+  
+  const trend = completedResults.length >= 2
+    ? (completedResults[completedResults.length - 1].percentage ?? 0) - (completedResults[completedResults.length - 2].percentage ?? 0)
+    : 0;
+
+  const totalScore = completedResults.reduce((acc, r) => acc + (r.score ?? 0), 0);
+  const maxTotalScore = completedResults.reduce((acc, r) => acc + (r.max_score ?? 0), 0);
 
   return (
     <div className="space-y-8">
@@ -227,7 +186,7 @@ const StudentResults: React.FC = () => {
 
       {/* Stats overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white/80 rounded-2xl border border-border p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
               <Target className="w-5 h-5 text-primary" />
@@ -237,17 +196,17 @@ const StudentResults: React.FC = () => {
           <p className="text-sm text-text-secondary">Score moyen</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white/80 rounded-2xl border border-border p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <Award className="w-5 h-5 text-green-600" />
             </div>
           </div>
-          <p className="text-2xl font-black text-green-600">{bestResult.score}%</p>
+          <p className="text-2xl font-black text-green-600">{bestResult ? `${(bestResult.percentage ?? 0).toFixed(0)}%` : '—'}</p>
           <p className="text-sm text-text-secondary">Meilleur score</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white/80 rounded-2xl border border-border p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
               trend >= 0 ? 'bg-green-100' : 'bg-red-100'
@@ -265,19 +224,19 @@ const StudentResults: React.FC = () => {
           <p className="text-sm text-text-secondary">Évolution</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-border p-5">
+        <div className="bg-white/80 rounded-2xl border border-border p-5">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-accent" />
             </div>
           </div>
-          <p className="text-2xl font-black text-text">{results.length}</p>
+          <p className="text-2xl font-black text-text">{completedResults.length}</p>
           <p className="text-sm text-text-secondary">Épreuves passées</p>
         </div>
       </div>
 
       {/* Progress chart placeholder */}
-      <div className="bg-white rounded-2xl border border-border p-6">
+      <div className="bg-white/80 rounded-2xl border border-border p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-text">Progression globale</h2>
           <div className="flex items-center gap-2">
@@ -287,32 +246,27 @@ const StudentResults: React.FC = () => {
         </div>
 
         {/* Simple progress visualization */}
-        <div className="grid grid-cols-6 gap-2">
-          {[1, 2, 3, 4, 5, 6].map(phase => {
-            const result = results.find(r => r.phase === phase);
+        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
+          {completedResults.map((r, i) => {
+            const pct = r.percentage ?? 0;
             return (
-              <div key={phase} className="text-center">
+              <div key={r.id} className="text-center">
                 <div className={`aspect-square rounded-xl flex items-center justify-center mb-2 ${
-                  result 
-                    ? result.score >= 80 
-                      ? 'bg-green-100' 
-                      : result.score >= 60 
-                        ? 'bg-benin-yellow/20' 
-                        : 'bg-red-100'
-                    : 'bg-gray-100'
+                  pct >= 80 ? 'bg-green-100' : pct >= 60 ? 'bg-benin-yellow/20' : 'bg-red-100'
                 }`}>
-                  {result ? (
-                    <span className={`text-lg font-black ${getScoreColor(result.score)}`}>
-                      {result.score}
-                    </span>
-                  ) : (
-                    <span className="text-lg font-black text-gray-300">-</span>
-                  )}
+                  <span className={`text-lg font-black ${getScoreColor(pct)}`}>
+                    {pct.toFixed(0)}
+                  </span>
                 </div>
-                <p className="text-xs text-text-secondary">Phase {phase}</p>
+                <p className="text-xs text-text-secondary truncate">{r.exam_title}</p>
               </div>
             );
           })}
+          {completedResults.length === 0 && (
+            <div className="col-span-full text-center py-6">
+              <p className="text-text-secondary text-sm">Aucune épreuve terminée</p>
+            </div>
+          )}
         </div>
 
         {/* Overall progress bar */}

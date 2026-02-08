@@ -1,12 +1,12 @@
 import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
+import {
+  LayoutDashboard,
+  Users,
   GraduationCap,
-  FileText, 
-  Trophy, 
-  Settings, 
+  FileText,
+  Trophy,
+  Settings,
   LogOut,
   BrainCircuit,
   Bell,
@@ -15,7 +15,8 @@ import {
   BarChart3,
   FileEdit,
   ClipboardList,
-  HelpCircle
+  HelpCircle,
+  Globe
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -23,9 +24,11 @@ const navItems = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard },
   { label: 'Candidatures', to: '/admin/candidatures', icon: ClipboardList },
   { label: 'QCM', to: '/admin/qcm', icon: HelpCircle },
+  { label: 'Épreuves', to: '/admin/epreuves', icon: FileText },
   { label: 'Résultats', to: '/admin/resultats', icon: Trophy },
   { label: 'Statistiques', to: '/admin/statistiques', icon: BarChart3 },
   { label: 'Contenu', to: '/admin/contenu', icon: FileEdit },
+  { label: 'Config Site', to: '/admin/config-site', icon: Globe },
   { label: 'Utilisateurs', to: '/admin/utilisateurs', icon: Users },
   { label: 'Paramètres', to: '/admin/parametres', icon: Settings },
 ];
@@ -42,15 +45,15 @@ const AdminLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 flex">
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-slate-800 border-r border-slate-700">
+      <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 bg-slate-800 border-r-2 border-primary/20">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-700">
-          <div className="w-10 h-10 bg-accent rounded-xl flex items-center justify-center">
-            <BrainCircuit className="w-6 h-6 text-primary" />
+        <div className="flex items-center gap-3 px-6 py-5 border-b-2 border-primary/20">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary via-accent to-blue rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+            <BrainCircuit className="w-6 h-6 text-white" />
           </div>
           <div>
             <span className="font-black text-white">OAIB</span>
-            <span className="text-xs text-accent block font-medium">Administration</span>
+            <span className="text-xs text-primary block font-bold">Administration</span>
           </div>
         </div>
 
@@ -64,8 +67,8 @@ const AdminLayout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-accent text-primary'
-                    : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-gradient-to-r from-primary/20 via-accent/15 to-blue/20 text-white border-l-4 border-primary shadow-lg shadow-primary/10'
+                    : 'text-slate-400 hover:bg-slate-700 hover:text-white hover:border-l-2 hover:border-primary/40'
                 }`
               }
             >
@@ -97,7 +100,7 @@ const AdminLayout: React.FC = () => {
 
       {/* Sidebar - Mobile */}
       <aside
-        className={`lg:hidden fixed inset-y-0 left-0 w-64 bg-slate-800 border-r border-slate-700 z-50 transform transition-transform duration-300 ${
+        className={`lg:hidden fixed inset-y-0 left-0 w-64 bg-slate-800 border-r-2 border-primary/20 z-50 transform transition-transform duration-300 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -131,8 +134,8 @@ const AdminLayout: React.FC = () => {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-accent text-primary'
-                    : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-gradient-to-r from-primary/20 via-accent/15 to-blue/20 text-white border-l-4 border-primary shadow-lg shadow-primary/10'
+                    : 'text-slate-400 hover:bg-slate-700 hover:text-white hover:border-l-2 hover:border-primary/40'
                 }`
               }
             >
@@ -143,7 +146,7 @@ const AdminLayout: React.FC = () => {
         </nav>
 
         {/* Logout */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t-2 border-primary/20">
           <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-sm font-medium text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
@@ -167,9 +170,14 @@ const AdminLayout: React.FC = () => {
               <Menu size={24} />
             </button>
 
-            {/* Search or title */}
-            <div className="hidden lg:block">
+            {/* Title - visible on desktop, mobile shows menu button */}
+            <div className="hidden lg:flex lg:flex-1 lg:items-center">
               <h1 className="text-lg font-bold text-white">Panel Administrateur</h1>
+            </div>
+
+            {/* Mobile logo/title - visible on mobile only */}
+            <div className="lg:hidden flex-1 flex items-center justify-center">
+              <h1 className="text-base font-bold text-white">OAIB Admin</h1>
             </div>
 
             {/* Right side */}

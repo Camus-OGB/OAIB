@@ -1,4 +1,4 @@
-import { Rocket, Globe, Users, Star, Leaf, Cpu, HeartPulse } from 'lucide-react';
+import { Leaf, Cpu, HeartPulse } from 'lucide-react';
 
 export const chartData = [
   { year: '2021', score: 65, participation: 120 },
@@ -12,13 +12,6 @@ export const regionData = [
   { name: "Atlantique (Abomey-Calavi)", count: 450, width: "65%" },
   { name: "Borgou (Parakou)", count: 210, width: "35%" },
   { name: "Oueme (Porto-Novo)", count: 160, width: "25%" },
-];
-
-export const timelineItems = [
-  { icon: Rocket, title: "2021 Inaugural", desc: "Annee de Fondation - Cotonou", status: "Termine", active: false },
-  { icon: Globe, title: "2022 National", desc: "12 Departements - 500+ Etudiants", status: "Termine", active: false },
-  { icon: Users, title: "2023 Regional", desc: "Integration UEMOA", status: "Termine", active: false },
-  { icon: Star, title: "2024 Innovation", desc: "Focus IA pour le Developpement", status: "Plus Recent", active: true },
 ];
 
 export const innovations = [

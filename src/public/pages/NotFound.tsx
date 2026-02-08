@@ -16,7 +16,7 @@ const NotFound: React.FC = () => {
       <div className="flex gap-4">
         <Link
           to="/"
-          className="flex items-center gap-2 px-6 py-3 bg-primary text-tech-blue font-bold rounded-lg hover:scale-105 transition-transform"
+          className="flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:scale-105 transition-transform"
         >
           <Home size={18} />
           Accueil

@@ -1,15 +1,20 @@
-import React from 'react';
-import { 
-  Users, 
-  GraduationCap, 
-  FileText, 
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  GraduationCap,
+  FileText,
   Trophy,
   TrendingUp,
   TrendingDown,
   ArrowRight,
   Calendar,
-  Activity
+  Activity,
+  Loader2
 } from 'lucide-react';
+import { listUsers } from '../../services/userService';
+import { listCandidates, getCandidateStats } from '../../services/candidateService';
+import { listExams, listExamSessions } from '../../services/examService';
+import { listAuditLogs } from '../../services/userService';
 
 interface StatCardProps {
   title: string;
@@ -46,21 +51,71 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, change, icon: Icon, c
   );
 };
 
-const recentActivities = [
-  { id: 1, action: 'Nouvel étudiant inscrit', user: 'Koffi Mensah', time: 'Il y a 5 min', type: 'user' },
-  { id: 2, action: 'Épreuve créée', user: 'Admin', time: 'Il y a 15 min', type: 'exam' },
-  { id: 3, action: 'Résultats publiés', user: 'Admin', time: 'Il y a 1h', type: 'result' },
-  { id: 4, action: 'Inscription validée', user: 'Afi Dossou', time: 'Il y a 2h', type: 'user' },
-  { id: 5, action: 'Modification contenu', user: 'Admin', time: 'Il y a 3h', type: 'content' },
-];
-
-const upcomingExams = [
-  { id: 1, title: 'Phase Qualificative', date: '15 Mars 2025', participants: 234 },
-  { id: 2, title: 'Phase Éliminatoire', date: '22 Mars 2025', participants: 180 },
-  { id: 3, title: 'Finale Nationale', date: '5 Avril 2025', participants: 50 },
-];
-
 const AdminDashboard: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalExams, setTotalExams] = useState(0);
+  const [avgScore, setAvgScore] = useState(0);
+  const [recentActivities, setRecentActivities] = useState<{id: number; action: string; user: string; time: string; type: string}[]>([]);
+  const [upcomingExams, setUpcomingExams] = useState<{id: number; title: string; date: string; participants: number}[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [usersRes, candidatesRes, examsRes, sessionsRes, logsRes] = await Promise.all([
+          listUsers(),
+          listCandidates(),
+          listExams('status=active'),
+          listExamSessions('status=completed&page_size=100'),
+          listAuditLogs('page_size=5'),
+        ]);
+
+        if (usersRes.ok) setTotalUsers(usersRes.data.count ?? 0);
+        if (candidatesRes.ok) setTotalStudents(candidatesRes.data.count ?? 0);
+        if (examsRes.ok) {
+          setTotalExams(examsRes.data.count ?? 0);
+          const upcoming = (examsRes.data.results ?? [])
+            .filter((e: any) => new Date(e.start_datetime) > new Date())
+            .slice(0, 3)
+            .map((e: any) => ({
+              id: e.id,
+              title: e.title,
+              date: new Date(e.start_datetime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
+              participants: e.sessions_count ?? 0,
+            }));
+          setUpcomingExams(upcoming);
+        }
+        if (sessionsRes.ok) {
+          const sessions = sessionsRes.data.results ?? [];
+          const withScore = sessions.filter((s: any) => s.percentage != null);
+          if (withScore.length > 0) {
+            setAvgScore(Math.round(withScore.reduce((a: number, s: any) => a + s.percentage, 0) / withScore.length));
+          }
+        }
+        if (logsRes.ok) {
+          setRecentActivities((logsRes.data.results ?? []).map((log: any) => ({
+            id: log.id,
+            action: log.action,
+            user: log.user_email,
+            time: new Date(log.created_at).toLocaleString('fr-FR', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }),
+            type: log.target_model === 'user' ? 'user' : log.target_model === 'exam' ? 'exam' : log.target_model === 'candidateprofile' ? 'result' : 'content',
+          })));
+        }
+      } catch { /* ignore */ }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -71,34 +126,10 @@ const AdminDashboard: React.FC = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Utilisateurs"
-          value="1,234"
-          change={12}
-          icon={Users}
-          color="accent"
-        />
-        <StatCard
-          title="Étudiants Inscrits"
-          value="856"
-          change={8}
-          icon={GraduationCap}
-          color="blue"
-        />
-        <StatCard
-          title="Épreuves Actives"
-          value="12"
-          change={-5}
-          icon={FileText}
-          color="purple"
-        />
-        <StatCard
-          title="Taux de Réussite"
-          value="68%"
-          change={15}
-          icon={Trophy}
-          color="orange"
-        />
+        <StatCard title="Total Utilisateurs" value={totalUsers} change={0} icon={Users} color="accent" />
+        <StatCard title="Étudiants Inscrits" value={totalStudents} change={0} icon={GraduationCap} color="blue" />
+        <StatCard title="Épreuves Actives" value={totalExams} change={0} icon={FileText} color="purple" />
+        <StatCard title="Score Moyen" value={`${avgScore}%`} change={0} icon={Trophy} color="orange" />
       </div>
 
       {/* Main Content Grid */}
@@ -158,7 +189,7 @@ const AdminDashboard: React.FC = () => {
             ))}
           </div>
           <div className="p-4 border-t border-slate-700">
-            <button className="w-full py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors">
+            <button className="w-full py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors">
               Créer une Épreuve
             </button>
           </div>
@@ -176,7 +207,7 @@ const AdminDashboard: React.FC = () => {
             <button className="px-6 py-3 bg-white text-primary font-bold rounded-xl hover:bg-white/90 transition-colors">
               Ajouter un Étudiant
             </button>
-            <button className="px-6 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors">
+            <button className="px-6 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors">
               Nouvelle Épreuve
             </button>
             <button className="px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700 transition-colors">

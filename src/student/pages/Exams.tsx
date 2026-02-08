@@ -1,92 +1,40 @@
-import React, { useState } from 'react';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle, 
-  Lock, 
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  Lock,
   AlertCircle,
   Play,
   Calendar,
   Trophy,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
+import { listExams, getMyExamSessions, listPhases } from '../../services/examService';
+import type { Exam as ExamType, ExamSession, Phase } from '../../shared/types';
+import ExamCountdown from '../../shared/components/ExamCountdown';
 
-interface Exam {
-  id: string;
+type ExamDisplayStatus = 'available' | 'completed' | 'locked' | 'in-progress';
+
+interface ExamDisplay {
+  id: number;
   title: string;
   description: string;
-  duration: number; // in minutes
+  duration: number;
   questionsCount: number;
-  status: 'available' | 'completed' | 'locked' | 'in-progress';
-  score?: number;
-  maxScore?: number;
+  status: ExamDisplayStatus;
+  score?: number | null;
+  maxScore?: number | null;
   deadline?: string;
+  startDateTime: string;
+  endDateTime: string;
   phase: number;
+  phaseTitle: string;
 }
 
-const exams: Exam[] = [
-  {
-    id: '1',
-    title: 'Test de Logique - Phase 1',
-    description: 'Évaluez vos capacités de raisonnement logique et analytique.',
-    duration: 30,
-    questionsCount: 20,
-    status: 'completed',
-    score: 85,
-    maxScore: 100,
-    phase: 1,
-  },
-  {
-    id: '2',
-    title: 'Mathématiques pour l\'IA',
-    description: 'Algèbre linéaire, probabilités et statistiques fondamentales.',
-    duration: 45,
-    questionsCount: 25,
-    status: 'completed',
-    score: 72,
-    maxScore: 100,
-    phase: 2,
-  },
-  {
-    id: '3',
-    title: 'Introduction à Python',
-    description: 'Syntaxe de base, structures de données et algorithmes simples.',
-    duration: 60,
-    questionsCount: 30,
-    status: 'available',
-    deadline: '10 Fév 2026',
-    phase: 3,
-  },
-  {
-    id: '4',
-    title: 'Fondamentaux du Machine Learning',
-    description: 'Concepts de base de l\'apprentissage automatique.',
-    duration: 45,
-    questionsCount: 25,
-    status: 'locked',
-    phase: 4,
-  },
-  {
-    id: '5',
-    title: 'Deep Learning & Réseaux de Neurones',
-    description: 'Architecture des réseaux de neurones et backpropagation.',
-    duration: 60,
-    questionsCount: 30,
-    status: 'locked',
-    phase: 5,
-  },
-  {
-    id: '6',
-    title: 'Projet Final IA',
-    description: 'Projet pratique combinant toutes les compétences acquises.',
-    duration: 120,
-    questionsCount: 10,
-    status: 'locked',
-    phase: 6,
-  },
-];
-
-const StatusBadge: React.FC<{ status: Exam['status']; score?: number; maxScore?: number }> = ({ 
+const StatusBadge: React.FC<{ status: ExamDisplayStatus; score?: number | null; maxScore?: number | null }> = ({ 
   status, 
   score, 
   maxScore 
@@ -124,12 +72,12 @@ const StatusBadge: React.FC<{ status: Exam['status']; score?: number; maxScore?:
   );
 };
 
-const ExamCard: React.FC<{ exam: Exam; onStart: (id: string) => void }> = ({ exam, onStart }) => {
+const ExamCard: React.FC<{ exam: ExamDisplay; onStart: (id: number) => void }> = ({ exam, onStart }) => {
   const isClickable = exam.status === 'available';
   
   return (
     <div 
-      className={`bg-white rounded-2xl border border-border p-6 transition-all ${
+      className={`bg-white/80 rounded-2xl border border-border p-6 transition-all ${
         isClickable ? 'hover:shadow-lg hover:border-primary/30 cursor-pointer' : ''
       } ${exam.status === 'locked' ? 'opacity-60' : ''}`}
       onClick={() => isClickable && onStart(exam.id)}
@@ -176,6 +124,17 @@ const ExamCard: React.FC<{ exam: Exam; onStart: (id: string) => void }> = ({ exa
         )}
       </div>
 
+      {/* Countdown */}
+      {(exam.status === 'locked' || exam.status === 'available' || exam.status === 'in-progress') && (
+        <div className="mt-4">
+          <ExamCountdown
+            startDateTime={exam.startDateTime}
+            endDateTime={exam.endDateTime}
+            variant="compact"
+          />
+        </div>
+      )}
+
       {isClickable && (
         <button className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors">
           <Play size={18} />
@@ -203,21 +162,75 @@ const ExamCard: React.FC<{ exam: Exam; onStart: (id: string) => void }> = ({ exa
 };
 
 const StudentExams: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [examsList, setExamsList] = useState<ExamDisplay[]>([]);
+  const [phases, setPhases] = useState<Phase[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [examsRes, sessionsRes, phasesRes] = await Promise.all([
+          listExams('status=published'),
+          getMyExamSessions(),
+          listPhases(),
+        ]);
+        const sessions: ExamSession[] = sessionsRes.ok ? (sessionsRes.data.results ?? []) : [];
+        const sessionsByExam = new Map<number, ExamSession>();
+        for (const s of sessions) sessionsByExam.set(s.exam, s);
+        const pList: Phase[] = phasesRes.ok ? (phasesRes.data.results ?? []) : [];
+        setPhases(pList);
+        const now = new Date();
+        const mapped: ExamDisplay[] = (examsRes.ok ? (examsRes.data.results ?? []) : []).map((e: ExamType) => {
+          const session = sessionsByExam.get(e.id);
+          let status: ExamDisplayStatus = 'locked';
+          if (session?.status === 'completed' || session?.status === 'timed_out') status = 'completed';
+          else if (session?.status === 'in_progress') status = 'in-progress';
+          else if (new Date(e.start_datetime) <= now && new Date(e.end_datetime) >= now) status = 'available';
+          return {
+            id: e.id,
+            title: e.title,
+            description: e.description,
+            duration: e.duration_minutes,
+            questionsCount: e.questions_count,
+            status,
+            score: session?.percentage ?? null,
+            maxScore: 100,
+            deadline: new Date(e.end_datetime) >= now ? new Date(e.end_datetime).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : undefined,
+            startDateTime: e.start_datetime,
+            endDateTime: e.end_datetime,
+            phase: e.phase,
+            phaseTitle: e.phase_title,
+          };
+        });
+        setExamsList(mapped);
+      } catch { /* ignore */ }
+       finally { setLoading(false); }
+    };
+    load();
+  }, []);
 
   const filteredExams = selectedPhase 
-    ? exams.filter(e => e.phase === selectedPhase)
-    : exams;
+    ? examsList.filter(e => e.phase === selectedPhase)
+    : examsList;
 
-  const completedCount = exams.filter(e => e.status === 'completed').length;
-  const averageScore = exams
+  const completedCount = examsList.filter(e => e.status === 'completed').length;
+  const averageScore = examsList
     .filter(e => e.score)
     .reduce((acc, e) => acc + (e.score || 0), 0) / completedCount || 0;
 
-  const handleStartExam = (examId: string) => {
-    // TODO: Navigate to exam page
-    console.log('Starting exam:', examId);
+  const handleStartExam = (examId: number) => {
+    navigate(`/etudiant/epreuves/${examId}`);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -235,7 +248,7 @@ const StudentExams: React.FC = () => {
               <CheckCircle className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-black text-text">{completedCount}/{exams.length}</p>
+              <p className="text-2xl font-black text-text">{completedCount}/{examsList.length}</p>
               <p className="text-xs text-text-secondary">Complétées</p>
             </div>
           </div>
@@ -257,7 +270,7 @@ const StudentExams: React.FC = () => {
               <Play className="w-5 h-5 text-benin-yellow" />
             </div>
             <div>
-              <p className="text-2xl font-black text-text">{exams.filter(e => e.status === 'available').length}</p>
+              <p className="text-2xl font-black text-text">{examsList.filter(e => e.status === 'available').length}</p>
               <p className="text-xs text-text-secondary">Disponibles</p>
             </div>
           </div>
@@ -268,7 +281,7 @@ const StudentExams: React.FC = () => {
               <Lock className="w-5 h-5 text-gray-500" />
             </div>
             <div>
-              <p className="text-2xl font-black text-text">{exams.filter(e => e.status === 'locked').length}</p>
+              <p className="text-2xl font-black text-text">{examsList.filter(e => e.status === 'locked').length}</p>
               <p className="text-xs text-text-secondary">Verrouillées</p>
             </div>
           </div>
@@ -287,17 +300,17 @@ const StudentExams: React.FC = () => {
         >
           Toutes les phases
         </button>
-        {[1, 2, 3, 4, 5, 6].map(phase => (
+        {phases.map(p => (
           <button
-            key={phase}
-            onClick={() => setSelectedPhase(phase)}
+            key={p.id}
+            onClick={() => setSelectedPhase(p.id)}
             className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-              selectedPhase === phase 
+              selectedPhase === p.id 
                 ? 'bg-primary text-white' 
                 : 'bg-white border border-border text-text-secondary hover:bg-background-alt'
             }`}
           >
-            Phase {phase}
+            {p.title}
           </button>
         ))}
       </div>

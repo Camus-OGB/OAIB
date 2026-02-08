@@ -5,16 +5,17 @@ import {
   Mail, Lock, Eye, EyeOff, BrainCircuit, ArrowRight, 
   Sparkles, Shield, Trophy, Users 
 } from 'lucide-react';
-import { signIn } from '../services/authService';
+import { signIn, getMe } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const { refreshUser, user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +30,19 @@ const LoginPage: React.FC = () => {
         } else if (authError.message.includes('Email not confirmed')) {
           setError('Veuillez vérifier votre email avant de vous connecter.');
         } else {
-          setError('Impossible de vous connecter pour le moment.');
+          setError(authError.message || 'Impossible de vous connecter pour le moment.');
         }
         return;
       }
-      navigate('/etudiant');
+      await refreshUser();
+      
+      // Attendre que l'utilisateur soit chargé et rediriger selon le rôle
+      const { data: userData } = await getMe();
+      if (userData?.role === 'admin' || userData?.role === 'moderator') {
+        navigate('/admin');
+      } else {
+        navigate('/etudiant');
+      }
     } catch (err) {
       setError('Une erreur inattendue est survenue.');
     } finally {
@@ -50,15 +59,15 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-primary to-blue">
         <motion.div 
-          className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+          className="absolute top-20 left-20 w-72 h-72 bg-white/15 rounded-full blur-3xl"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }}
           transition={{ duration: 8, repeat: Infinity }}
         />
         <motion.div 
-          className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl"
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }}
+          className="absolute bottom-20 right-10 w-96 h-96 bg-accent/30 rounded-full blur-3xl"
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 10, repeat: Infinity }}
         />
 
@@ -78,32 +87,34 @@ const LoginPage: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur rounded-full text-white/90 text-sm font-medium mb-6 border border-white/20">
-              <Sparkles size={16} className="text-accent" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-lg">
+              <Sparkles size={16} className="text-yellow" />
               Édition 2026 ouverte
             </div>
-            <h1 className="text-5xl font-black text-white mb-6 leading-tight">
+            <h1 className="text-5xl font-black text-white mb-6 leading-tight drop-shadow-lg">
               Bienvenue dans<br />
-              <span className="text-accent">l'espace candidat</span>
+              <span className="text-accent drop-shadow-lg">l'espace candidat</span>
             </h1>
-            <p className="text-white/70 text-lg max-w-md leading-relaxed">
+            <p className="text-white text-lg max-w-md leading-relaxed drop-shadow-md">
               Connectez-vous pour accéder à votre tableau de bord, passer vos épreuves et suivre votre progression vers l'excellence.
             </p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-4">
             {features.map((feature, index) => (
-              <motion.div key={index} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + index * 0.1 }} className="flex items-center gap-4 text-white/80">
-                <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center border border-white/20">
-                  <feature.icon size={20} className="text-accent" />
+              <motion.div key={index} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + index * 0.1 }} className="flex items-center gap-4 text-white">
+                <div className="w-10 h-10 bg-white/15 backdrop-blur rounded-xl flex items-center justify-center border border-white/30 shadow-md">
+                  <feature.icon size={20} className="text-white" />
                 </div>
-                <span className="font-medium">{feature.text}</span>
+                <span className="font-semibold drop-shadow">{feature.text}</span>
               </motion.div>
             ))}
           </motion.div>
 
           <div className="pt-8">
-            <p className="text-white/80">Pas encore inscrit ? <Link to="/inscription" className="text-accent font-bold hover:text-accent/80 transition-colors">Créer un compte</Link></p>
+            <p className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] font-medium">
+              Pas encore inscrit ? <Link to="/inscription" className="text-white font-bold hover:text-yellow transition-colors drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Créer un compte</Link>
+            </p>
           </div>
         </div>
       </div>
@@ -138,23 +149,23 @@ const LoginPage: React.FC = () => {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Adresse email</label>
-                <div className={`relative transition-all duration-300 ${focusedField === 'email' ? 'scale-[1.02]' : ''}`}>
-                  <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'email' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-600 mb-2">Adresse email</label>
+                <div className="relative">
+                  <input id="email" name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="peer w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="votreemail@exemple.com" />
+                  <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-100 text-slate-400 peer-focus:bg-primary peer-focus:text-white">
                     <Mail size={20} />
                   </div>
-                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} required className="w-full pl-16 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="votreemail@exemple.com" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Mot de passe</label>
-                <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'scale-[1.02]' : ''}`}>
-                  <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-600 mb-2">Mot de passe</label>
+                <div className="relative">
+                  <input id="password" name="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} required className="peer w-full pl-16 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="••••••••" />
+                  <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-100 text-slate-400 peer-focus:bg-primary peer-focus:text-white">
                     <Lock size={20} />
                   </div>
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)} required className="w-full pl-16 pr-14 py-4 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all" placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
@@ -174,8 +185,8 @@ const LoginPage: React.FC = () => {
                 <Link to="/mot-de-passe-oublie" className="text-sm text-primary font-medium hover:text-primary/80 transition-colors">Mot de passe oublié ?</Link>
               </div>
 
-              <motion.button type="submit" disabled={isLoading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                {isLoading ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Se connecter</span><ArrowRight size={20} /></>}
+              <motion.button type="submit" disabled={isLoading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-2 py-4 bg-red text-white font-bold rounded-xl hover:bg-red-light hover:shadow-lg hover:shadow-red/30 transition-all disabled:opacity-50">
+                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Se connecter</span><ArrowRight size={18} /></>}
               </motion.button>
             </form>
 

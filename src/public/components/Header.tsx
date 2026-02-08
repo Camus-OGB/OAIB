@@ -72,13 +72,13 @@ const Header: React.FC = () => {
           <div className="flex items-center gap-2">
             <Link
               to="/connexion"
-              className="hidden md:inline-flex items-center justify-center px-5 py-2.5 text-primary text-sm font-bold rounded-full hover:bg-primary/5 transition-all"
+              className="hidden md:inline-flex items-center justify-center px-6 py-3 bg-red text-white text-sm font-bold rounded-full hover:bg-red-light hover:shadow-lg hover:shadow-red/25 transition-all"
             >
               Connexion
             </Link>
             <Link
               to="/inscription"
-              className="hidden md:inline-flex items-center justify-center px-6 py-3 bg-accent text-primary text-sm font-bold rounded-full hover:bg-accent-light hover:shadow-lg transition-all"
+              className="hidden md:inline-flex items-center justify-center px-6 py-3 bg-red text-white text-sm font-bold rounded-full hover:bg-red-light hover:shadow-lg hover:shadow-red/25 transition-all"
             >
               S'inscrire
             </Link>
@@ -126,7 +126,7 @@ const Header: React.FC = () => {
             <Link
               to="/connexion"
               onClick={() => setIsMenuOpen(false)}
-              className="w-full rounded-full py-3 border-2 border-primary text-primary text-sm font-bold flex items-center justify-center hover:bg-primary/5 transition-all"
+              className="w-full rounded-full py-3 bg-red text-white text-sm font-bold flex items-center justify-center hover:bg-red-light transition-all"
             >
               Connexion
             </Link>

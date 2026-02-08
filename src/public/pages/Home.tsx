@@ -1,29 +1,101 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Award, Globe, ArrowRight, Calendar, BarChart3, HelpCircle, Quote, ChevronLeft, ChevronRight, Sparkles, Cpu, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCarousel } from '../../shared/hooks/useCarousel';
 import { useCountdown } from '../../shared/hooks/useCountdown';
 import { usePageTitle } from '../../shared/hooks/usePageTitle';
-import { heroImages, testimonials, newsItems } from '../data/home';
+import { heroImages } from '../data/home';
+import { listNews, listPartners, listTestimonials } from '../../services/cmsService';
+import { listEditionsPublic, listPhasesPublic } from '../../services/examService';
+import type { NewsArticleListItem, Partner, Phase, Testimonial } from '../../shared/types';
 import { AnimatedSection, AnimatedCard } from '../../shared/components/layout/AnimatedSection';
 import { OptimizedImage } from '../../shared/components/ui/OptimizedImage';
 import { NeuralNetworkPattern, ConstellationPattern, CircuitPattern } from '../../shared/components/patterns/AIPatterns';
 import LiveCounter from '../../shared/components/LiveCounter';
+import { parseDjangoDate, formatDate } from '../../shared/utils/dateHelpers';
 
-const EDITION_DATE = new Date('2026-12-01T00:00:00');
+const FALLBACK_DATE = new Date('2026-12-01T00:00:00');
 
 const Home: React.FC = () => {
   usePageTitle();
 
   const heroCarousel = useCarousel(heroImages.length, 5000);
+
+  // ── API state ──────────────────────────────────────────────
+  const [newsItems, setNewsItems] = useState<NewsArticleListItem[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [editionsCount, setEditionsCount] = useState(0);
+  const [nextPhaseDate, setNextPhaseDate] = useState<Date | null>(null);
+  const [nextPhaseLabel, setNextPhaseLabel] = useState('LA COMPETITION');
+
+  const countdown = useCountdown(nextPhaseDate ?? FALLBACK_DATE);
   const testimonialCarousel = useCarousel(testimonials.length, 6000);
-  const countdown = useCountdown(EDITION_DATE);
+
+
+  useEffect(() => {
+    listNews('page_size=4').then(r => {
+      if (r.data) {
+        // Filtrer uniquement les actualités publiées
+        const publishedNews = (r.data.results ?? []).filter(n => n.status === 'published');
+        setNewsItems(publishedNews);
+      }
+    }).catch(() => {});
+    listPartners().then(r => { if (r.data) setPartners((r.data.results ?? []).filter(p => p.is_active)); }).catch(() => {});
+    listTestimonials('page_size=10').then(r => { if (r.data) setTestimonials((r.data.results ?? []).filter(t => t.is_active)); }).catch(() => {});
+    listEditionsPublic().then(r => { if (r.data) setEditionsCount(r.data.count ?? 0); }).catch(() => {});
+    // Trouver la prochaine phase upcoming pour le countdown
+    listPhasesPublic('ordering=start_date').then(r => {
+      if (!r.data) return;
+      const phases = r.data.results ?? [];
+      const upcoming = phases.find((p: Phase) => p.status === 'upcoming');
+      if (upcoming) {
+        const d = parseDjangoDate(upcoming.start_date);
+        if (d) { setNextPhaseDate(d); setNextPhaseLabel(upcoming.title.toUpperCase()); }
+      } else {
+        const active = phases.find((p: Phase) => p.status === 'active');
+        if (active) {
+          const d = parseDjangoDate(active.end_date);
+          if (d) {
+            d.setHours(23, 59, 59);
+            setNextPhaseDate(d);
+            setNextPhaseLabel(`FIN : ${active.title.toUpperCase()}`);
+          }
+        }
+      }
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="w-full overflow-hidden bg-background">
-      {/* Hero Section - Light & Welcoming */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-white via-background to-background-alt">
+      {/* Hero Section - Style flyer OAIB */}
+      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-primary/5 via-white to-blue/10">
+        {/* Binary matrix overlay - digital effect */}
+        <div className="absolute inset-0 opacity-[0.025] pointer-events-none font-mono text-[10px] text-primary leading-relaxed select-none overflow-hidden">
+          {Array.from({ length: 30 }).map((_, i) => (
+            <div key={i} className="whitespace-nowrap animate-pulse" style={{ animationDelay: `${i * 0.15}s`, animationDuration: '4s' }}>
+              {Array.from({ length: 180 }).map(() => Math.random() > 0.5 ? '1' : '0').join(' ')}
+            </div>
+          ))}
+        </div>
+
+        {/* Circuit pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.015] pointer-events-none">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="hero-circuit" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+                <circle cx="60" cy="60" r="2.5" fill="currentColor" className="text-primary" />
+                <line x1="60" y1="60" x2="120" y2="60" stroke="currentColor" strokeWidth="0.8" className="text-accent" />
+                <line x1="60" y1="60" x2="60" y2="0" stroke="currentColor" strokeWidth="0.8" className="text-blue" />
+                <circle cx="0" cy="60" r="2" fill="currentColor" className="text-accent" />
+                <circle cx="60" cy="0" r="2" fill="currentColor" className="text-blue" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-circuit)" />
+          </svg>
+        </div>
+
         {/* Subtle background image */}
         <div className="absolute inset-0 opacity-[0.08]">
           <img 
@@ -33,22 +105,23 @@ const Home: React.FC = () => {
           />
         </div>
         
-        {/* Soft color blurs */}
-        <div className="absolute top-[15%] right-[10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[20%] left-[5%] w-[400px] h-[400px] bg-primary/15 rounded-full blur-[100px]" />
+        {/* Gradient blurs - Style flyer (vert turquoise vers bleu marine) - Plus visibles */}
+        <div className="absolute top-[15%] right-[10%] w-[700px] h-[700px] bg-primary/45 rounded-full blur-[130px]" />
+        <div className="absolute bottom-[20%] left-[5%] w-[600px] h-[600px] bg-blue/35 rounded-full blur-[110px]" />
+        <div className="absolute top-[40%] right-[25%] w-[450px] h-[450px] bg-accent/35 rounded-full blur-[100px]" />
         
         {/* Patterns */}
         <NeuralNetworkPattern className="w-[600px] h-[600px] text-pattern absolute bottom-0 right-0 opacity-30" />
         <ConstellationPattern className="w-[400px] h-[400px] text-pattern absolute top-10 left-10 opacity-35" />
-        {/* Benin flag colors - subtle blurs */}
-        <div className="absolute top-[25%] right-[30%] w-[200px] h-[200px] bg-benin-yellow/12 rounded-full blur-[70px]" />
-        <div className="absolute bottom-[35%] left-[25%] w-[150px] h-[150px] bg-benin-red/10 rounded-full blur-[60px]" />
-        <div className="absolute top-[55%] right-[15%] w-[120px] h-[120px] bg-benin-green/8 rounded-full blur-[50px]" />
-        {/* Subtle tricolor line */}
-        <div className="absolute top-0 left-0 right-0 h-1 flex">
-          <div className="flex-1 bg-benin-green/25" />
-          <div className="flex-1 bg-benin-yellow/30" />
-          <div className="flex-1 bg-benin-red/25" />
+        {/* Benin flag colors - Plus visibles */}
+        <div className="absolute top-[25%] right-[30%] w-[280px] h-[280px] bg-benin-yellow/25 rounded-full blur-[80px]" />
+        <div className="absolute bottom-[35%] left-[25%] w-[220px] h-[220px] bg-benin-red/22 rounded-full blur-[70px]" />
+        <div className="absolute top-[55%] right-[15%] w-[180px] h-[180px] bg-benin-green/18 rounded-full blur-[60px]" />
+        {/* Tricolor line - Plus visible */}
+        <div className="absolute top-0 left-0 right-0 h-2 flex">
+          <div className="flex-1 bg-benin-green/40" />
+          <div className="flex-1 bg-benin-yellow/50" />
+          <div className="flex-1 bg-benin-red/40" />
         </div>
 
         <div className="w-full relative z-10 px-6 sm:px-10 md:px-16 lg:px-20 py-16 lg:py-20">
@@ -63,11 +136,11 @@ const Home: React.FC = () => {
                   transition={{ duration: 0.5 }}
                   className="flex flex-wrap justify-center lg:justify-start items-center gap-3 mb-8"
                 >
-                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-border text-text text-xs font-bold uppercase tracking-wider shadow-sm">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border-2 border-primary/30 text-text text-xs font-bold uppercase tracking-wider shadow-sm hover:border-primary transition-all">
                     <Calendar size={14} className="text-primary" />
                     Decembre 2026
                   </span>
-                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-border text-text text-xs font-bold uppercase tracking-wider shadow-sm">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border-2 border-accent/30 text-text text-xs font-bold uppercase tracking-wider shadow-sm hover:border-accent transition-all">
                     <Globe size={14} className="text-accent" />
                     Cotonou, Benin
                   </span>
@@ -84,7 +157,7 @@ const Home: React.FC = () => {
                   </p>
                   <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-text mb-6">
                     Olympiades<br />
-                    <span className="text-primary">
+                    <span className="bg-gradient-to-r from-primary via-accent to-blue bg-clip-text text-transparent">
                       d'Intelligence Artificielle
                     </span>
                     <br />du Benin
@@ -111,14 +184,14 @@ const Home: React.FC = () => {
                 >
                   <Link
                     to="/programme"
-                    className="group inline-flex items-center gap-2 px-7 py-3.5 bg-primary text-white font-bold text-sm rounded-xl transition-all hover:bg-primary-light hover:shadow-lg hover:shadow-primary/25 hover:scale-[1.02]"
+                    className="group inline-flex items-center gap-2 px-7 py-3.5 bg-red text-white font-bold text-sm rounded-xl transition-all hover:bg-red-light hover:shadow-lg hover:shadow-red/25 hover:scale-[1.02]"
                   >
                     S'inscrire maintenant
                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                   </Link>
                   <Link
                     to="/a-propos"
-                    className="inline-flex items-center gap-2 px-7 py-3.5 bg-white border border-border text-text font-bold text-sm rounded-xl hover:bg-background-alt hover:border-primary/30 transition-all shadow-sm"
+                    className="inline-flex items-center gap-2 px-7 py-3.5 bg-gradient-to-r from-yellow/10 to-yellow/5 border-2 border-yellow/40 text-text font-bold text-sm rounded-xl hover:from-yellow hover:to-yellow-light hover:text-white hover:border-yellow transition-all shadow-sm"
                   >
                     En savoir plus
                   </Link>
@@ -132,11 +205,11 @@ const Home: React.FC = () => {
                   className="flex justify-center lg:justify-start items-center gap-8 mt-10 pt-8 border-t border-border"
                 >
                   {[
-                    { value: '04', label: 'Editions', icon: Sparkles },
-                    { value: '10+', label: 'Partenaires', icon: Globe },
+                    { value: editionsCount > 0 ? String(editionsCount).padStart(2, '0') : '—', label: 'Éditions', icon: Sparkles, color: 'text-yellow' },
+                    { value: partners.length > 0 ? `${partners.length}+` : '—', label: 'Partenaires', icon: Globe, color: 'text-primary' },
                   ].map((stat, i) => (
                     <div key={i} className="text-center lg:text-left">
-                      <p className="text-2xl sm:text-3xl font-black text-primary">{stat.value}</p>
+                      <p className={`text-2xl sm:text-3xl font-black ${stat.color || 'text-primary'}`}>{stat.value}</p>
                       <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mt-1">{stat.label}</p>
                     </div>
                   ))}
@@ -219,43 +292,53 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Countdown Section - Trust Blue gradient */}
+      {/* Countdown Section - Gradient moderne style flyer */}
       <AnimatedSection>
-        <section className="relative py-12 md:py-16 overflow-hidden bg-primary">
+        <section className="relative py-12 md:py-16 overflow-hidden bg-gradient-to-br from-primary via-primary to-blue">
           {/* Decorative elements */}
           <div className="absolute top-0 left-0 w-full h-full">
-            <div className="absolute top-0 left-1/4 w-64 h-64 bg-accent/20 rounded-full blur-[100px]" aria-hidden="true" />
-            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-accent/15 rounded-full blur-[80px]" aria-hidden="true" />
+            <div className="absolute top-0 left-1/4 w-64 h-64 bg-white/10 rounded-full blur-[100px]" aria-hidden="true" />
+            <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-accent/20 rounded-full blur-[80px]" aria-hidden="true" />
           </div>
-          <CircuitPattern className="w-full h-[200px] text-pattern top-1/2 -translate-y-1/2 left-0 opacity-40" />
+          <CircuitPattern className="w-full h-[200px] text-white/20 top-1/2 -translate-y-1/2 left-0 opacity-40" />
 
           <div className="relative z-10 px-6 sm:px-10 md:px-16 lg:px-20">
             <div className="max-w-6xl mx-auto text-center">
-              <p className="text-accent text-sm uppercase tracking-widest mb-8">La competition commence dans</p>
+              {nextPhaseDate ? (
+                <>
+                  <p className="text-white/90 text-sm uppercase tracking-widest mb-8">{nextPhaseLabel} commence dans</p>
 
-              {/* Countdown display */}
-              <div className="mb-8 flex justify-center items-center gap-4 sm:gap-8 md:gap-12 lg:gap-16" aria-live="polite" aria-label="Compte a rebours">
-                {[
-                  { value: countdown.days, label: 'Jours' },
-                  { value: countdown.hours, label: 'Heures' },
-                  { value: countdown.minutes, label: 'Min' },
-                  { value: countdown.seconds, label: 'Sec' },
-                ].map((item, i) => (
-                  <React.Fragment key={i}>
-                    {i > 0 && (
-                      <span className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white/10 -mt-4">:</span>
-                    )}
-                    <div className="flex flex-col items-center">
-                      <div className="relative">
-                        <span className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-white tracking-tight">
-                          {item.value}
-                        </span>
-                      </div>
-                      <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-slate-500 mt-2">{item.label}</span>
-                    </div>
-                  </React.Fragment>
-                ))}
-              </div>
+                  {/* Countdown display */}
+                  <div className="mb-8 flex justify-center items-center gap-4 sm:gap-8 md:gap-12 lg:gap-16" aria-live="polite" aria-label="Compte a rebours">
+                    {[
+                      { value: countdown.days, label: 'Jours' },
+                      { value: countdown.hours, label: 'Heures' },
+                      { value: countdown.minutes, label: 'Min' },
+                      { value: countdown.seconds, label: 'Sec' },
+                    ].map((item, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && (
+                          <span className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-white/10 -mt-4">:</span>
+                        )}
+                        <div className="flex flex-col items-center">
+                          <div className="relative">
+                            <span className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-white tracking-tight">
+                              {item.value}
+                            </span>
+                          </div>
+                          <span className="text-xs sm:text-sm font-bold uppercase tracking-widest text-white/60 mt-2">{item.label}</span>
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="py-8">
+                  <p className="text-white/90 text-sm uppercase tracking-widest mb-6">Prochaine compétition</p>
+                  <p className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4">Dates à venir</p>
+                  <p className="text-white/70 text-base max-w-md mx-auto">Les dates de la prochaine édition seront annoncées prochainement. Restez connectés !</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -271,9 +354,9 @@ const Home: React.FC = () => {
             className="w-full h-full object-cover"
           />
         </div>
-        {/* Subtle Benin accents */}
-        <div className="absolute top-10 right-10 w-[200px] h-[200px] bg-benin-yellow/8 rounded-full blur-[80px]" />
-        <div className="absolute bottom-10 left-20 w-[150px] h-[150px] bg-benin-red/6 rounded-full blur-[60px]" />
+        {/* Subtle Benin accents - Plus visibles */}
+        <div className="absolute top-10 right-10 w-[280px] h-[280px] bg-benin-yellow/18 rounded-full blur-[85px]" />
+        <div className="absolute bottom-10 left-20 w-[220px] h-[220px] bg-benin-red/15 rounded-full blur-[70px]" />
         <CircuitPattern className="w-[400px] h-[400px] text-pattern absolute top-0 left-0 opacity-35" />
         <div className="w-full max-w-6xl mx-auto relative z-10">
           <AnimatedSection className="text-center mb-14">
@@ -281,14 +364,14 @@ const Home: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-black text-text">Explorez l'OAIB</h2>
           </AnimatedSection>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Card 1 - A Propos */}
             <AnimatedCard delay={0}>
               <Link
                 to="/a-propos"
-                className="group relative h-72 flex flex-col justify-end p-7 bg-white border border-border rounded-2xl overflow-hidden hover:border-primary hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
+                className="group relative h-72 flex flex-col justify-end p-7 bg-white border-2 border-primary/20 rounded-2xl overflow-hidden hover:border-primary hover:shadow-xl hover:shadow-primary/20 transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-6 right-6 w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/20 transition-all">
                   <Globe className="w-7 h-7 text-primary" />
                 </div>
@@ -303,9 +386,9 @@ const Home: React.FC = () => {
             <AnimatedCard delay={0.1}>
               <Link
                 to="/programme"
-                className="group relative h-72 flex flex-col justify-end p-7 bg-white border border-border rounded-2xl overflow-hidden hover:border-accent hover:shadow-lg hover:shadow-accent/10 transition-all duration-300"
+                className="group relative h-72 flex flex-col justify-end p-7 bg-white border-2 border-accent/20 rounded-2xl overflow-hidden hover:border-accent hover:shadow-xl hover:shadow-accent/20 transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <div className="absolute top-6 right-6 w-14 h-14 rounded-xl bg-accent/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-accent/20 transition-all">
                   <Calendar className="w-7 h-7 text-accent" />
                 </div>
@@ -320,32 +403,32 @@ const Home: React.FC = () => {
             <AnimatedCard delay={0.2}>
               <Link
                 to="/resultats"
-                className="group relative h-72 flex flex-col justify-end p-7 bg-white border border-border rounded-2xl overflow-hidden hover:border-primary-light hover:shadow-lg hover:shadow-primary/10 transition-all duration-300"
+                className="group relative h-72 flex flex-col justify-end p-7 bg-white border-2 border-yellow/30 rounded-2xl overflow-hidden hover:border-yellow hover:shadow-xl hover:shadow-yellow/20 transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="absolute top-6 right-6 w-14 h-14 rounded-xl bg-primary-light/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-primary-light/20 transition-all">
-                  <Award className="w-7 h-7 text-primary-light" />
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-6 right-6 w-14 h-14 rounded-xl bg-yellow/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-yellow/20 transition-all">
+                  <Award className="w-7 h-7 text-yellow-dark" />
                 </div>
                 <div className="relative z-10">
-                  <h3 className="text-xl font-bold text-text mb-2 group-hover:text-primary transition-colors">Resultats</h3>
+                  <h3 className="text-xl font-bold text-text mb-2 group-hover:text-yellow-dark transition-colors">Resultats</h3>
                   <p className="text-sm text-text-secondary">Classements et laureats des editions passees.</p>
                 </div>
               </Link>
             </AnimatedCard>
 
-            {/* Card 4 - FAQ (Wider) */}
-            <AnimatedCard delay={0.3} className="md:col-span-2">
+            {/* Card 4 - FAQ */}
+            <AnimatedCard delay={0.3}>
               <Link
                 to="/programme"
-                className="group relative h-44 flex items-center justify-between p-8 bg-background-alt border border-border rounded-2xl overflow-hidden hover:border-primary hover:shadow-lg transition-all duration-300"
+                className="group relative h-72 flex flex-col justify-end p-7 bg-white border-2 border-red/20 rounded-2xl overflow-hidden hover:border-red hover:shadow-xl hover:shadow-red/20 transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <h3 className="text-xl font-bold text-text mb-2 group-hover:text-primary transition-colors">Questions frequentes</h3>
-                  <p className="text-sm text-text-secondary max-w-md">Inscription, epreuves, conditions de participation... toutes vos reponses.</p>
+                <div className="absolute inset-0 bg-gradient-to-br from-red/8 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute top-6 right-6 w-14 h-14 rounded-xl bg-red/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-red/20 transition-all">
+                  <HelpCircle className="w-7 h-7 text-red" />
                 </div>
-                <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0 ml-4">
-                  <HelpCircle className="w-8 h-8 text-primary" />
+                <div className="relative z-10">
+                  <h3 className="text-xl font-bold text-text mb-2 group-hover:text-red transition-colors">Questions frequentes</h3>
+                  <p className="text-sm text-text-secondary">Inscription, epreuves, conditions de participation... toutes vos reponses.</p>
                 </div>
               </Link>
             </AnimatedCard>
@@ -357,8 +440,8 @@ const Home: React.FC = () => {
       <section className="relative px-6 sm:px-10 md:px-16 lg:px-20 py-20 bg-white overflow-hidden">
         {/* Subtle background pattern */}
         <ConstellationPattern className="w-[350px] h-[350px] text-pattern absolute top-10 right-0 opacity-25" />
-        {/* Benin accent */}
-        <div className="absolute bottom-0 left-0 w-[180px] h-[180px] bg-benin-green/6 rounded-full blur-[70px]" />
+        {/* Benin accent - Plus visible */}
+        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] bg-benin-green/15 rounded-full blur-[75px]" />
         <div className="w-full max-w-6xl mx-auto relative z-10">
           <AnimatedSection className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
             <div>
@@ -366,25 +449,27 @@ const Home: React.FC = () => {
               <h2 className="text-3xl md:text-4xl font-black text-text">Dernieres Nouvelles</h2>
               <p className="text-text-secondary mt-2 max-w-md">Restez informe des annonces et mises a jour de l'OAIB.</p>
             </div>
-            <Link to="/a-propos" className="group inline-flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/20 rounded-full text-sm font-bold text-primary hover:bg-primary hover:text-white hover:border-primary transition-all">
+            <Link to="/actualites" className="group inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-full text-sm font-bold text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm">
               Toutes les actualites <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </AnimatedSection>
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {newsItems.length > 0 ? (
+            <>
             {/* Featured News - Large */}
             <AnimatedCard delay={0} className="lg:col-span-3">
               <article className="group relative h-full min-h-[400px] rounded-2xl overflow-hidden border border-border">
-                <OptimizedImage src={newsItems[0].image} alt={newsItems[0].title} className="absolute inset-0 h-full" />
+                <OptimizedImage src={newsItems[0].image || ''} alt={newsItems[0].title} className="absolute inset-0 h-full" />
                 <div className="absolute inset-0 bg-gradient-to-t from-navy/85 via-navy/50 to-navy/20" />
                 <div className="absolute inset-0 flex flex-col justify-end p-8">
-                  <span className={`inline-flex self-start items-center px-3 py-1.5 rounded-full bg-accent/90 backdrop-blur-sm text-xs font-bold text-primary border border-white/10 mb-4`}>
-                    {newsItems[0].category}
+                  <span className={`inline-flex self-start items-center px-3 py-1.5 rounded-full bg-accent/90 backdrop-blur-sm text-xs font-bold text-white border border-white/10 mb-4`}>
+                    Actualité
                   </span>
                   <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-accent transition-colors">{newsItems[0].title}</h3>
-                  <p className="text-accent/80 mb-4 line-clamp-2">{newsItems[0].desc}</p>
+                  <p className="text-accent/80 mb-4 line-clamp-2">{newsItems[0].excerpt}</p>
                   <div className="flex items-center gap-2 text-xs font-bold text-accent/60 uppercase tracking-wider">
-                    <Calendar size={14} /> {newsItems[0].date}
+                    <Calendar size={14} /> {formatDate(newsItems[0].published_at)}
                   </div>
                 </div>
               </article>
@@ -392,25 +477,31 @@ const Home: React.FC = () => {
 
             {/* Other News - Stacked */}
             <div className="lg:col-span-2 flex flex-col gap-5">
-              {newsItems.slice(1).map((news, i) => (
-                <AnimatedCard key={i} delay={0.1 + i * 0.1}>
+              {newsItems.slice(1, 4).map((news, i) => (
+                <AnimatedCard key={news.id} delay={0.1 + i * 0.1}>
                   <article className="group flex gap-4 p-4 rounded-xl bg-background border border-border hover:border-primary/30 transition-all duration-300">
                     <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-border">
-                      <OptimizedImage src={news.image} alt={news.title} className="h-full" />
+                      <OptimizedImage src={news.image || ''} alt={news.title} className="h-full" />
                     </div>
                     <div className="flex flex-col justify-between py-0.5">
                       <div>
-                        <span className={`text-xs font-bold text-accent mb-1 block`}>{news.category}</span>
+                        <span className={`text-xs font-bold text-accent mb-1 block`}>Actualité</span>
                         <h3 className="text-sm font-bold text-text group-hover:text-primary transition-colors line-clamp-2">{news.title}</h3>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-text-secondary">
-                        <Calendar size={12} /> {news.date}
+                        <Calendar size={12} /> {formatDate(news.published_at)}
                       </div>
                     </div>
                   </article>
                 </AnimatedCard>
               ))}
             </div>
+            </>
+            ) : (
+              <div className="lg:col-span-5 text-center py-12">
+                <p className="text-text-secondary">Chargement des actualités...</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -425,12 +516,12 @@ const Home: React.FC = () => {
             className="w-full h-full object-cover"
           />
         </div>
-        {/* Decorative elements */}
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-[120px]" aria-hidden="true" />
-        <div className="absolute bottom-20 right-10 w-80 h-80 bg-accent/10 rounded-full blur-[120px]" aria-hidden="true" />
-        {/* Benin colors */}
-        <div className="absolute top-[40%] right-[5%] w-[150px] h-[150px] bg-benin-yellow/10 rounded-full blur-[70px]" />
-        <div className="absolute bottom-[30%] left-[15%] w-[100px] h-[100px] bg-benin-red/8 rounded-full blur-[50px]" />
+        {/* Decorative elements - Plus colorés */}
+        <div className="absolute top-20 left-10 w-96 h-96 bg-primary/22 rounded-full blur-[130px]" aria-hidden="true" />
+        <div className="absolute bottom-20 right-10 w-[420px] h-[420px] bg-accent/20 rounded-full blur-[130px]" aria-hidden="true" />
+        {/* Benin colors - Plus visibles */}
+        <div className="absolute top-[40%] right-[5%] w-[220px] h-[220px] bg-benin-yellow/22 rounded-full blur-[75px]" />
+        <div className="absolute bottom-[30%] left-[15%] w-[160px] h-[160px] bg-benin-red/18 rounded-full blur-[60px]" />
         <NeuralNetworkPattern className="w-[300px] h-[300px] text-pattern absolute bottom-0 right-0 opacity-30" />
 
         <div className="w-full max-w-6xl mx-auto relative z-10">
@@ -440,6 +531,7 @@ const Home: React.FC = () => {
             <p className="text-text-secondary">Decouvrez les parcours inspirants de nos laureats</p>
           </AnimatedSection>
 
+          {testimonials.length > 0 ? (
           <div
             className="relative"
             onMouseEnter={testimonialCarousel.pause}
@@ -472,26 +564,30 @@ const Home: React.FC = () => {
 
                       {/* Video or Image */}
                       <div className="relative w-full h-full rounded-[1.5rem] overflow-hidden border border-border shadow-lg bg-navy">
-                        {testimonials[testimonialCarousel.current].videoUrl ? (
+                        {testimonials[testimonialCarousel.current].video_url ? (
                           <iframe
-                            src={testimonials[testimonialCarousel.current].videoUrl}
+                            src={testimonials[testimonialCarousel.current].video_url}
                             title={`Témoignage de ${testimonials[testimonialCarousel.current].name}`}
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             allowFullScreen
                             className="w-full h-full"
                           />
-                        ) : (
+                        ) : testimonials[testimonialCarousel.current].image ? (
                           <OptimizedImage
                             src={testimonials[testimonialCarousel.current].image}
                             alt={testimonials[testimonialCarousel.current].name}
                             className="h-full"
                           />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-slate-700">
+                            <Users className="w-20 h-20 text-slate-500" />
+                          </div>
                         )}
                       </div>
 
                       {/* Quote icon */}
                       <div className="absolute -bottom-4 -right-4 w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shadow-xl shadow-accent/30">
-                        <Quote className="w-7 h-7 text-primary" />
+                        <Quote className="w-7 h-7 text-white" />
                       </div>
                     </div>
                   </div>
@@ -548,6 +644,11 @@ const Home: React.FC = () => {
               </button>
             </div>
           </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-text-secondary">Chargement des témoignages...</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -562,38 +663,34 @@ const Home: React.FC = () => {
           <div className="relative overflow-hidden">
             <div className="flex animate-scroll">
               {/* Premier groupe */}
-              {[
-                { name: 'Ministere du Numerique', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Coat_of_arms_of_Benin.svg/180px-Coat_of_arms_of_Benin.svg.png' },
-                { name: 'UNESCO', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/UNESCO_logo.svg/180px-UNESCO_logo.svg.png' },
-                { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png' },
-                { name: 'UNICEF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_of_UNICEF.svg/200px-Logo_of_UNICEF.svg.png' },
-                { name: 'African Union', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Flag_of_the_African_Union.svg/200px-Flag_of_the_African_Union.svg.png' },
-              ].map((partner, i) => (
-                <div key={`p1-${i}`} className="flex-shrink-0 w-64 mx-4">
+              {partners.map((partner, i) => (
+                <div key={`p1-${partner.id}`} className="flex-shrink-0 w-64 mx-4">
                   <div className="flex items-center justify-center h-20 px-6 py-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-default">
-                    <img
-                      src={partner.logo}
-                      alt={partner.name}
-                      className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
-                    />
+                    {partner.logo ? (
+                      <img
+                        src={partner.logo}
+                        alt={partner.name}
+                        className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-text-secondary">{partner.name}</span>
+                    )}
                   </div>
                 </div>
               ))}
               {/* Duplication pour effet infini */}
-              {[
-                { name: 'Ministere du Numerique', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Coat_of_arms_of_Benin.svg/180px-Coat_of_arms_of_Benin.svg.png' },
-                { name: 'UNESCO', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/UNESCO_logo.svg/180px-UNESCO_logo.svg.png' },
-                { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/200px-Google_2015_logo.svg.png' },
-                { name: 'UNICEF', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_of_UNICEF.svg/200px-Logo_of_UNICEF.svg.png' },
-                { name: 'African Union', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Flag_of_the_African_Union.svg/200px-Flag_of_the_African_Union.svg.png' },
-              ].map((partner, i) => (
-                <div key={`p2-${i}`} className="flex-shrink-0 w-64 mx-4">
+              {partners.map((partner, i) => (
+                <div key={`p2-${partner.id}`} className="flex-shrink-0 w-64 mx-4">
                   <div className="flex items-center justify-center h-20 px-6 py-4 rounded-xl bg-background border border-border hover:border-primary/30 hover:shadow-md transition-all cursor-default">
-                    <img
-                      src={partner.logo}
-                      alt={partner.name}
-                      className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
-                    />
+                    {partner.logo ? (
+                      <img
+                        src={partner.logo}
+                        alt={partner.name}
+                        className="max-h-10 max-w-full object-contain opacity-70 hover:opacity-100 transition-opacity"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-text-secondary">{partner.name}</span>
+                    )}
                   </div>
                 </div>
               ))}

@@ -3,10 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BrainCircuit, Mail, ArrowRight, RefreshCw, CheckCircle, Sparkles } from 'lucide-react';
 import { verifySignupOtp, resendSignupOtp } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 const OTPVerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshUser } = useAuth();
   const email = location.state?.email || 'votre@email.com';
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -59,6 +61,7 @@ const OTPVerificationPage: React.FC = () => {
       const { error: verifyError } = await verifySignupOtp(email, code);
       if (verifyError) { setError('Code incorrect ou expiré.'); return; }
       setIsVerified(true);
+      await refreshUser();
       setTimeout(() => navigate('/etudiant'), 2000);
     } catch { setError('Échec de la vérification, veuillez réessayer.'); } finally { setIsLoading(false); }
   };
@@ -96,8 +99,8 @@ const OTPVerificationPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
       {/* Background effects */}
-      <motion.div className="absolute top-20 left-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 8, repeat: Infinity }} />
-      <motion.div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/10 rounded-full blur-3xl" animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 10, repeat: Infinity }} />
+      <motion.div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }} transition={{ duration: 8, repeat: Infinity }} />
+      <motion.div className="absolute bottom-20 right-10 w-96 h-96 bg-yellow/15 rounded-full blur-3xl" animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 10, repeat: Infinity }} />
 
       {/* Left Panel - Branding (hidden on mobile) */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative z-10 bg-primary">
@@ -116,21 +119,21 @@ const OTPVerificationPage: React.FC = () => {
               <BrainCircuit className="w-9 h-9 text-white" />
             </motion.div>
             <div>
-              <span className="font-black text-white text-3xl">OAIB</span>
-              <span className="text-white/80 block text-base font-medium">Olympiades IA Bénin</span>
+              <span className="font-black text-white text-3xl drop-shadow">OAIB</span>
+              <span className="text-white block text-base font-semibold drop-shadow">Olympiades IA Bénin</span>
             </div>
           </div>
           
-          <h1 className="text-4xl font-black text-white mb-4 leading-tight">
+          <h1 className="text-4xl font-black text-white mb-4 leading-tight drop-shadow-lg">
             Vérifiez votre
-            <span className="text-accent"> email</span>
+            <span className="text-accent drop-shadow-lg"> email</span>
           </h1>
-          <p className="text-white/80 text-lg mb-6">
+          <p className="text-white text-lg mb-6 drop-shadow-md">
             Un code de vérification a été envoyé à votre adresse email. Entrez ce code pour activer votre compte.
           </p>
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 rounded-full text-white font-medium border border-white/30 mb-8">
-            <Sparkles size={14} className="text-accent" />
-            <span className="max-w-[280px] truncate">{email}</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full text-white font-semibold border border-white/30 mb-8 shadow-lg">
+            <Sparkles size={14} className="text-yellow" />
+            <span className="max-w-[280px] truncate drop-shadow">{email}</span>
           </div>
 
           {/* Visual illustration */}
@@ -244,7 +247,7 @@ const OTPVerificationPage: React.FC = () => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-slate-50 border-2 rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:bg-primary/5 focus:ring-4 focus:ring-primary/20 focus:scale-105 transition-all duration-200 ${
+                    className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold bg-slate-50 border-2 rounded-xl text-slate-800 focus:outline-none focus:border-primary focus:bg-primary/5 focus:ring-4 focus:ring-primary/20 transition-all duration-200 ${
                       error ? 'border-red-400 bg-red-50' : digit ? 'border-primary bg-primary/10' : 'border-slate-300'
                     }`}
                   />
@@ -257,14 +260,14 @@ const OTPVerificationPage: React.FC = () => {
               disabled={isLoading || otp.some(d => !d)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center justify-center gap-3 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary-light hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50"
             >
               {isLoading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <span>Vérifier mon compte</span>
-                  <ArrowRight size={20} />
+                  <ArrowRight size={18} />
                 </>
               )}
             </motion.button>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Clock, 
   ChevronLeft, 
@@ -8,87 +9,11 @@ import {
   Flag,
   Send,
   X,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
-
-interface Question {
-  id: string;
-  text: string;
-  options: { id: string; text: string }[];
-  category: string;
-}
-
-interface ExamSessionProps {
-  examId?: string;
-  onComplete?: (results: ExamResult) => void;
-  onExit?: () => void;
-}
-
-interface ExamResult {
-  examId: string;
-  answers: Record<string, string>;
-  timeSpent: number;
-  flaggedQuestions: string[];
-}
-
-// Mock questions for demo
-const mockQuestions: Question[] = [
-  {
-    id: '1',
-    text: 'Si tous les A sont B, et tous les B sont C, alors :',
-    options: [
-      { id: 'a', text: 'Tous les C sont A' },
-      { id: 'b', text: 'Tous les A sont C' },
-      { id: 'c', text: 'Certains C ne sont pas A' },
-      { id: 'd', text: 'Aucun A n\'est C' },
-    ],
-    category: 'Logique',
-  },
-  {
-    id: '2',
-    text: 'Complétez la suite : 2, 6, 12, 20, 30, ?',
-    options: [
-      { id: 'a', text: '40' },
-      { id: 'b', text: '42' },
-      { id: 'c', text: '44' },
-      { id: 'd', text: '46' },
-    ],
-    category: 'Mathématiques',
-  },
-  {
-    id: '3',
-    text: 'Quel algorithme est le plus efficace pour trier un tableau de grande taille ?',
-    options: [
-      { id: 'a', text: 'Bubble Sort - O(n²)' },
-      { id: 'b', text: 'Quick Sort - O(n log n)' },
-      { id: 'c', text: 'Selection Sort - O(n²)' },
-      { id: 'd', text: 'Insertion Sort - O(n²)' },
-    ],
-    category: 'Algorithmique',
-  },
-  {
-    id: '4',
-    text: 'En apprentissage automatique, qu\'est-ce que le surapprentissage (overfitting) ?',
-    options: [
-      { id: 'a', text: 'Le modèle ne peut pas apprendre les données d\'entraînement' },
-      { id: 'b', text: 'Le modèle mémorise les données au lieu de généraliser' },
-      { id: 'c', text: 'Le modèle est trop simple pour les données' },
-      { id: 'd', text: 'Le modèle a besoin de plus de données' },
-    ],
-    category: 'Machine Learning',
-  },
-  {
-    id: '5',
-    text: 'Quelle est la dérivée de f(x) = x² + 3x ?',
-    options: [
-      { id: 'a', text: '2x + 3' },
-      { id: 'b', text: 'x² + 3' },
-      { id: 'c', text: '2x' },
-      { id: 'd', text: 'x + 3' },
-    ],
-    category: 'Mathématiques',
-  },
-];
+import { startExam, getExam, submitAnswer, finishExam as finishExamApi } from '../../services/examService';
+import type { Question, QuestionOption, ExamDetail } from '../../shared/types';
 
 const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
@@ -96,23 +21,55 @@ const formatTime = (seconds: number): string => {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onExit }) => {
-  const [questions] = useState<Question[]>(mockQuestions);
+const optionLetters = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+const ExamSessionPage: React.FC = () => {
+  const { examId } = useParams<{ examId: string }>();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [exam, setExam] = useState<ExamDetail | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [flagged, setFlagged] = useState<Set<string>>(new Set());
-  const [timeLeft, setTimeLeft] = useState(30 * 60); // 30 minutes
+  const [answers, setAnswers] = useState<Record<number, number>>({});  // questionId -> optionId
+  const [flagged, setFlagged] = useState<Set<number>>(new Set());
+  const [timeLeft, setTimeLeft] = useState(0);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [showTabWarning, setShowTabWarning] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Load exam & start session
+  useEffect(() => {
+    if (!examId) return;
+    const init = async () => {
+      try {
+        const [sessionRes, examRes] = await Promise.all([
+          startExam(Number(examId)),
+          getExam(Number(examId)),
+        ]);
+        if (!sessionRes.ok) { setError(sessionRes.error?.message || 'Impossible de démarrer l\'examen'); setLoading(false); return; }
+        if (!examRes.ok) { setError('Impossible de charger les questions'); setLoading(false); return; }
+        setSessionId(sessionRes.data.id);
+        setExam(examRes.data);
+        const qs = examRes.data.questions || [];
+        setQuestions(qs);
+        setTimeLeft(examRes.data.duration_minutes * 60);
+      } catch { setError('Erreur réseau'); }
+      finally { setLoading(false); }
+    };
+    init();
+  }, [examId]);
 
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
   const isLastQuestion = currentIndex === questions.length - 1;
 
-  // Timer
+  // Timer — only start after exam is loaded
   useEffect(() => {
+    if (timeLeft <= 0 || loading) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
@@ -125,7 +82,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [loading, timeLeft > 0]); // eslint-disable-line
 
   // Anti-cheat: detect tab/window changes
   useEffect(() => {
@@ -161,11 +118,19 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  const handleAnswer = (optionId: string) => {
+  const handleAnswer = (optionId: number) => {
+    if (!sessionId || !currentQuestion) return;
     setAnswers(prev => ({ ...prev, [currentQuestion.id]: optionId }));
+    // Submit answer to API in background
+    submitAnswer(sessionId, {
+      question_id: currentQuestion.id,
+      option_id: optionId,
+      is_flagged: flagged.has(currentQuestion.id),
+    });
   };
 
   const toggleFlag = () => {
+    if (!currentQuestion) return;
     setFlagged(prev => {
       const newSet = new Set(prev);
       if (newSet.has(currentQuestion.id)) {
@@ -181,39 +146,55 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
     setCurrentIndex(index);
   };
 
-  const handleSubmit = useCallback(() => {
-    const results: ExamResult = {
-      examId,
-      answers,
-      timeSpent: 30 * 60 - timeLeft,
-      flaggedQuestions: Array.from(flagged),
-    };
-    
-    if (onComplete) {
-      onComplete(results);
+  const handleSubmit = useCallback(async () => {
+    if (!sessionId) return;
+    setSubmitting(true);
+    try {
+      await finishExamApi(sessionId);
+      navigate('/etudiant/resultats');
+    } catch {
+      // still navigate
+      navigate('/etudiant/resultats');
     }
-    
-    // TODO: Navigate to results page
-    console.log('Exam submitted:', results);
-  }, [examId, answers, timeLeft, flagged, onComplete]);
+  }, [sessionId, navigate]);
 
   const handleExit = () => {
     setShowExitWarning(true);
   };
 
   const confirmExit = () => {
-    if (onExit) {
-      onExit();
-    }
-    // TODO: Navigate back to exams list
+    navigate('/etudiant/epreuves');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !currentQuestion) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-benin-red mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-text mb-2">Erreur</h2>
+          <p className="text-text-secondary mb-4">{error || 'Aucune question disponible'}</p>
+          <button onClick={() => navigate('/etudiant/epreuves')} className="px-6 py-3 bg-primary text-white font-bold rounded-xl">
+            Retour aux épreuves
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Tab switch warning modal */}
       {showTabWarning && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-slate-50 rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center gap-3 text-benin-red mb-4">
               <AlertTriangle size={24} />
               <h3 className="text-lg font-bold">Attention !</h3>
@@ -242,7 +223,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
       {/* Exit warning modal */}
       {showExitWarning && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-slate-50 rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center gap-3 text-benin-red mb-4">
               <AlertCircle size={24} />
               <h3 className="text-lg font-bold">Quitter l'examen ?</h3>
@@ -271,7 +252,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
       {/* Submit confirmation modal */}
       {showConfirmSubmit && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="bg-slate-50 rounded-2xl p-6 max-w-md w-full">
             <h3 className="text-lg font-bold text-text mb-4">Confirmer la soumission</h3>
             <div className="space-y-3 mb-6">
               <div className="flex justify-between text-sm">
@@ -313,7 +294,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-border">
+      <header className="sticky top-0 z-30 bg-slate-50 border-b border-border">
         <div className="flex items-center justify-between px-4 lg:px-8 py-4">
           <button
             onClick={handleExit}
@@ -334,7 +315,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
 
           <button
             onClick={() => setShowConfirmSubmit(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-primary font-bold rounded-xl hover:bg-accent-light transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-white font-bold rounded-xl hover:bg-accent-light transition-colors"
           >
             <Send size={18} />
             <span className="hidden sm:inline">Soumettre</span>
@@ -383,10 +364,10 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
         </div>
 
         {/* Question card */}
-        <div className="bg-white rounded-2xl border border-border p-6 lg:p-8">
+        <div className="bg-white/80 rounded-2xl border border-border p-6 lg:p-8">
           <div className="flex items-center justify-between mb-4">
             <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full">
-              {currentQuestion.category}
+              {currentQuestion.category_name}
             </span>
             <button
               onClick={toggleFlag}
@@ -406,7 +387,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
           </h2>
 
           <div className="space-y-3">
-            {currentQuestion.options.map((option) => (
+            {currentQuestion.options.map((option, idx) => (
               <button
                 key={option.id}
                 onClick={() => handleAnswer(option.id)}
@@ -422,7 +403,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
                       ? 'bg-primary text-white'
                       : 'bg-background text-text-secondary'
                   }`}>
-                    {option.id.toUpperCase()}
+                    {optionLetters[idx] || idx + 1}
                   </div>
                   <span className={`${
                     answers[currentQuestion.id] === option.id
@@ -454,7 +435,7 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
           {isLastQuestion ? (
             <button
               onClick={() => setShowConfirmSubmit(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent-light transition-colors"
+              className="flex items-center gap-2 px-6 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent-light transition-colors"
             >
               Terminer
               <Send size={18} />
@@ -474,4 +455,4 @@ const ExamSession: React.FC<ExamSessionProps> = ({ examId = '3', onComplete, onE
   );
 };
 
-export default ExamSession;
+export default ExamSessionPage;

@@ -1,0 +1,52 @@
+# ═══════════════════════════════════════════════
+# OAIB Backend - Production Requirements
+# ═══════════════════════════════════════════════
+
+# ── Django Core ────────────────────────────────
+Django==5.2.11
+python-decouple==3.8
+dj-database-url==3.1.0
+psycopg2-binary==2.9.11
+
+# ── Django Extensions ──────────────────────────
+django-extensions==4.1
+django-filter==25.2
+django-cors-headers==4.9.0
+django-phonenumber-field==8.4.0
+phonenumberslite==9.0.23
+django-timezone-field==7.2.1
+django-storages==1.14.6
+
+# ── REST API ───────────────────────────────────
+djangorestframework==3.16.1
+djangorestframework_simplejwt==5.5.1
+drf-spectacular==0.29.0
+
+# ── Celery (tâches asynchrones) ───────────────
+celery==5.6.2
+django-celery-beat==2.8.1
+django_celery_results==2.6.0
+redis==7.1.0
+
+# ── Supabase ───────────────────────────────────
+supabase==2.27.3
+supabase-auth==2.27.3
+supabase-functions==2.27.3
+storage3==2.27.3
+postgrest==2.27.3
+realtime==2.27.3
+
+# ── Utilitaires ────────────────────────────────
+Pillow==12.1.0
+openpyxl==3.1.5
+reportlab==4.4.9
+requests==2.32.5
+python-dateutil==2.9.0.post0
+
+# ── Production Server ──────────────────────────
+gunicorn==24.0.0
+whitenoise==6.9.0
+
+# ── Security & JWT ─────────────────────────────
+PyJWT==2.11.0
+cryptography==46.0.4

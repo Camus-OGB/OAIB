@@ -1,62 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
-  Filter, 
   Download, 
   Eye,
   ChevronLeft,
   ChevronRight,
   Mail,
-  Phone,
   MapPin,
-  GraduationCap
+  GraduationCap,
+  Loader2
 } from 'lucide-react';
+import { listCandidates, approveCandidate, rejectCandidate } from '../../services/candidateService';
+import type { CandidateProfile, CandidateStatus } from '../../shared/types';
 
-interface Student {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  school: string;
-  city: string;
-  level: string;
-  status: 'pending' | 'validated' | 'rejected';
-  registeredAt: string;
-}
-
-const mockStudents: Student[] = [
-  { id: 1, name: 'Mensah Koffi', email: 'mensah.koffi@email.com', phone: '+229 97 00 00 01', school: 'Lycée Béhanzin', city: 'Cotonou', level: 'Terminale', status: 'validated', registeredAt: '2025-01-15' },
-  { id: 2, name: 'Afi Dossou', email: 'afi.dossou@email.com', phone: '+229 97 00 00 02', school: 'Collège Notre Dame', city: 'Porto-Novo', level: '3ème', status: 'validated', registeredAt: '2025-01-18' },
-  { id: 3, name: 'Kodjo Agbossou', email: 'kodjo.agb@email.com', phone: '+229 97 00 00 03', school: 'Lycée Toffa 1er', city: 'Porto-Novo', level: 'Première', status: 'pending', registeredAt: '2025-01-20' },
-  { id: 4, name: 'Sena Hounton', email: 'sena.h@email.com', phone: '+229 97 00 00 04', school: 'CS Sainte Rita', city: 'Cotonou', level: 'Seconde', status: 'validated', registeredAt: '2025-01-22' },
-  { id: 5, name: 'Bruno Adjaho', email: 'bruno.adj@email.com', phone: '+229 97 00 00 05', school: 'Lycée Technique', city: 'Parakou', level: 'Terminale', status: 'rejected', registeredAt: '2025-01-25' },
-  { id: 6, name: 'Grace Assogba', email: 'grace.a@email.com', phone: '+229 97 00 00 06', school: 'CEG Gbégamey', city: 'Cotonou', level: '3ème', status: 'pending', registeredAt: '2025-01-28' },
-  { id: 7, name: 'Eric Bankole', email: 'eric.b@email.com', phone: '+229 97 00 00 07', school: 'Lycée Coulibaly', city: 'Natitingou', level: 'Première', status: 'validated', registeredAt: '2025-02-01' },
-  { id: 8, name: 'Diane Houenou', email: 'diane.h@email.com', phone: '+229 97 00 00 08', school: 'CS Les Hibiscus', city: 'Cotonou', level: 'Seconde', status: 'validated', registeredAt: '2025-02-03' },
-];
-
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: 'En attente', color: 'bg-yellow-500/10 text-yellow-400' },
-  validated: { label: 'Validé', color: 'bg-accent/10 text-accent' },
+  approved: { label: 'Validé', color: 'bg-accent/10 text-accent' },
   rejected: { label: 'Rejeté', color: 'bg-red-500/10 text-red-400' },
+  incomplete: { label: 'Incomplet', color: 'bg-orange-500/10 text-orange-400' },
 };
 
 const AdminStudents: React.FC = () => {
+  const [students, setStudents] = useState<CandidateProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<CandidateProfile | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const itemsPerPage = 10;
 
-  const cities = [...new Set(mockStudents.map(s => s.city))];
+  const fetchStudents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(currentPage));
+      params.set('page_size', String(itemsPerPage));
+      if (searchQuery) params.set('search', searchQuery);
+      if (selectedStatus !== 'all') params.set('status', selectedStatus);
+      if (selectedCity !== 'all') params.set('city', selectedCity);
+      const res = await listCandidates(params.toString());
+      if (res.ok) {
+        setStudents(res.data.results ?? []);
+        setTotalCount(res.data.count ?? 0);
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false); }
+  }, [currentPage, searchQuery, selectedStatus, selectedCity]);
 
-  const filteredStudents = mockStudents.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.school.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || student.status === selectedStatus;
-    const matchesCity = selectedCity === 'all' || student.city === selectedCity;
-    return matchesSearch && matchesStatus && matchesCity;
-  });
+  useEffect(() => { fetchStudents(); }, [fetchStudents]);
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  const handleApprove = async (id: number) => {
+    setActionLoading(id);
+    try { await approveCandidate(id); fetchStudents(); } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
+  const handleReject = async (id: number) => {
+    setActionLoading(id);
+    try { await rejectCandidate(id, 'Rejeté par l\'administrateur'); fetchStudents(); } catch { /* ignore */ }
+    finally { setActionLoading(null); }
+  };
+
+  // Stats from current data
+  const statCounts = { pending: 0, approved: 0, rejected: 0 };
+  students.forEach(s => { if (s.status in statCounts) statCounts[s.status as keyof typeof statCounts]++; });
 
   return (
     <div className="space-y-6">
@@ -64,7 +76,7 @@ const AdminStudents: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-white">Étudiants</h1>
-          <p className="text-slate-400 mt-1">{mockStudents.length} étudiants inscrits</p>
+          <p className="text-slate-400 mt-1">{totalCount} étudiants inscrits</p>
         </div>
         <button className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-700 text-white font-medium rounded-xl hover:bg-slate-600 transition-colors">
           <Download size={20} />
@@ -77,25 +89,19 @@ const AdminStudents: React.FC = () => {
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
           <div className="flex items-center justify-between">
             <span className="text-slate-400 text-sm">En attente</span>
-            <span className="text-2xl font-bold text-yellow-400">
-              {mockStudents.filter(s => s.status === 'pending').length}
-            </span>
+            <span className="text-2xl font-bold text-yellow-400">{statCounts.pending}</span>
           </div>
         </div>
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
           <div className="flex items-center justify-between">
             <span className="text-slate-400 text-sm">Validés</span>
-            <span className="text-2xl font-bold text-accent">
-              {mockStudents.filter(s => s.status === 'validated').length}
-            </span>
+            <span className="text-2xl font-bold text-accent">{statCounts.approved}</span>
           </div>
         </div>
         <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
           <div className="flex items-center justify-between">
             <span className="text-slate-400 text-sm">Rejetés</span>
-            <span className="text-2xl font-bold text-red-400">
-              {mockStudents.filter(s => s.status === 'rejected').length}
-            </span>
+            <span className="text-2xl font-bold text-red-400">{statCounts.rejected}</span>
           </div>
         </div>
       </div>
@@ -110,7 +116,7 @@ const AdminStudents: React.FC = () => {
               type="text"
               placeholder="Rechercher par nom, email ou école..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full pl-12 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:border-accent"
             />
           </div>
@@ -118,26 +124,24 @@ const AdminStudents: React.FC = () => {
           {/* Status Filter */}
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
             className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
           >
             <option value="all">Tous les statuts</option>
             <option value="pending">En attente</option>
-            <option value="validated">Validé</option>
+            <option value="approved">Validé</option>
             <option value="rejected">Rejeté</option>
+            <option value="incomplete">Incomplet</option>
           </select>
 
           {/* City Filter */}
-          <select
-            value={selectedCity}
-            onChange={(e) => setSelectedCity(e.target.value)}
-            className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:border-accent"
-          >
-            <option value="all">Toutes les villes</option>
-            {cities.map(city => (
-              <option key={city} value={city}>{city}</option>
-            ))}
-          </select>
+          <input
+            type="text"
+            placeholder="Filtrer par ville..."
+            value={selectedCity === 'all' ? '' : selectedCity}
+            onChange={(e) => { setSelectedCity(e.target.value || 'all'); setCurrentPage(1); }}
+            className="px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:border-accent"
+          />
         </div>
       </div>
 
@@ -156,18 +160,25 @@ const AdminStudents: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
-              {filteredStudents.map((student) => (
+              {loading ? (
+                <tr><td colSpan={6} className="py-12 text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto" />
+                </td></tr>
+              ) : students.length === 0 ? (
+                <tr><td colSpan={6} className="py-12 text-center text-slate-400">Aucun étudiant trouvé</td></tr>
+              ) : students.map((student) => {
+                const sc = statusConfig[student.status] || statusConfig.incomplete;
+                const initials = (student.user_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+                return (
                 <tr key={student.id} className="hover:bg-slate-700/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">
-                          {student.name.split(' ').map(n => n[0]).join('')}
-                        </span>
+                        <span className="text-white font-bold text-sm">{initials}</span>
                       </div>
                       <div>
-                        <p className="text-white font-medium">{student.name}</p>
-                        <p className="text-slate-400 text-sm">{student.email}</p>
+                        <p className="text-white font-medium">{student.user_name || 'Nom inconnu'}</p>
+                        <p className="text-slate-400 text-sm">{student.user_email}</p>
                       </div>
                     </div>
                   </td>
@@ -185,8 +196,8 @@ const AdminStudents: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusConfig[student.status].color}`}>
-                      {statusConfig[student.status].label}
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${sc.color}`}>
+                      {sc.label}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -197,12 +208,20 @@ const AdminStudents: React.FC = () => {
                       >
                         <Eye size={18} />
                       </button>
-                      {student.status === 'pending' && (
+                      {(student.status === 'pending' || student.status === 'incomplete') && (
                         <>
-                          <button className="px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-sm font-medium hover:bg-accent/20 transition-colors">
-                            Valider
+                          <button
+                            onClick={() => handleApprove(student.id)}
+                            disabled={actionLoading === student.id}
+                            className="px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-sm font-medium hover:bg-accent/20 transition-colors disabled:opacity-50"
+                          >
+                            {actionLoading === student.id ? '...' : 'Valider'}
                           </button>
-                          <button className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors">
+                          <button
+                            onClick={() => handleReject(student.id)}
+                            disabled={actionLoading === student.id}
+                            className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                          >
                             Rejeter
                           </button>
                         </>
@@ -210,7 +229,8 @@ const AdminStudents: React.FC = () => {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -218,14 +238,22 @@ const AdminStudents: React.FC = () => {
         {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700">
           <p className="text-slate-400 text-sm">
-            Affichage de <span className="text-white">1-{filteredStudents.length}</span> sur <span className="text-white">{filteredStudents.length}</span> étudiants
+            Page <span className="text-white">{currentPage}</span> sur <span className="text-white">{totalPages || 1}</span> ({totalCount} étudiants)
           </p>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-50" disabled>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+              className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-50"
+            >
               <ChevronLeft size={20} />
             </button>
-            <button className="px-4 py-2 rounded-lg bg-accent text-primary font-medium">1</button>
-            <button className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-50" disabled>
+            <button className="px-4 py-2 rounded-lg bg-accent text-white font-medium">{currentPage}</button>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+              className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white disabled:opacity-50"
+            >
               <ChevronRight size={20} />
             </button>
           </div>
@@ -239,13 +267,13 @@ const AdminStudents: React.FC = () => {
             <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-white font-bold text-xl">
-                  {selectedStudent.name.split(' ').map(n => n[0]).join('')}
+                  {(selectedStudent.user_name || '??').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">{selectedStudent.name}</h2>
-                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusConfig[selectedStudent.status].color}`}>
-                  {statusConfig[selectedStudent.status].label}
+                <h2 className="text-xl font-bold text-white">{selectedStudent.user_name || 'Nom inconnu'}</h2>
+                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${(statusConfig[selectedStudent.status] || statusConfig.incomplete).color}`}>
+                  {(statusConfig[selectedStudent.status] || statusConfig.incomplete).label}
                 </span>
               </div>
             </div>
@@ -253,11 +281,7 @@ const AdminStudents: React.FC = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-slate-300">
                 <Mail size={18} className="text-slate-400" />
-                {selectedStudent.email}
-              </div>
-              <div className="flex items-center gap-3 text-slate-300">
-                <Phone size={18} className="text-slate-400" />
-                {selectedStudent.phone}
+                {selectedStudent.user_email}
               </div>
               <div className="flex items-center gap-3 text-slate-300">
                 <GraduationCap size={18} className="text-slate-400" />
@@ -265,7 +289,7 @@ const AdminStudents: React.FC = () => {
               </div>
               <div className="flex items-center gap-3 text-slate-300">
                 <MapPin size={18} className="text-slate-400" />
-                {selectedStudent.city}, Bénin
+                {selectedStudent.city}, {selectedStudent.country}
               </div>
             </div>
 
@@ -276,8 +300,11 @@ const AdminStudents: React.FC = () => {
               >
                 Fermer
               </button>
-              {selectedStudent.status === 'pending' && (
-                <button className="flex-1 py-3 bg-accent text-primary font-bold rounded-xl hover:bg-accent/90 transition-colors">
+              {(selectedStudent.status === 'pending' || selectedStudent.status === 'incomplete') && (
+                <button
+                  onClick={() => { handleApprove(selectedStudent.id); setSelectedStudent(null); }}
+                  className="flex-1 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors"
+                >
                   Valider l'inscription
                 </button>
               )}

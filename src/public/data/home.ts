@@ -29,26 +29,4 @@ export const testimonials = [
   }
 ];
 
-export const newsItems = [
-  {
-    category: "EVENEMENT", color: "text-primary",
-    title: "Retour sur la grande finale de l'edition 2024",
-    desc: "Decouvrez les projets innovants qui ont marque le jury lors de la cloture exceptionnelle a Cotonou.",
-    date: "15 Oct 2024",
-    image: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=75"
-  },
-  {
-    category: "FORMATION", color: "text-benin-yellow",
-    title: "Lancement des Bootcamps IA en ligne",
-    desc: "Une serie de formations intensives pour preparer les candidats aux defis techniques de demain.",
-    date: "02 Nov 2024",
-    image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=75"
-  },
-  {
-    category: "PARTENARIAT", color: "text-benin-red",
-    title: "Nouveau partenariat strategique avec Google AI Africa",
-    desc: "Une collaboration majeure pour offrir des bourses et des ressources de pointe a nos laureats.",
-    date: "20 Dec 2024",
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=75"
-  }
-];
+

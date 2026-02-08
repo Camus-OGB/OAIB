@@ -9,7 +9,7 @@ const LegalNotice: React.FC = () => {
   return (
     <div className="w-full bg-background">
       {/* Hero */}
-      <section className="relative py-20 bg-primary">
+      <section className="relative py-20 bg-gradient-to-br from-primary via-accent to-blue">
         <div className="px-6 sm:px-10 md:px-16 lg:px-20">
           <div className="max-w-4xl mx-auto text-center">
             <AnimatedSection>

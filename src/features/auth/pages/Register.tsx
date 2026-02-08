@@ -7,6 +7,42 @@ import {
 } from 'lucide-react';
 import { signUp, type SignUpPayload } from '../services/authService';
 
+// InputField component extracted to avoid re-creation on every render
+const InputField: React.FC<{
+  name: string;
+  label: string;
+  type?: string;
+  icon: React.ElementType;
+  placeholder: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+}> = ({ name, label, type = 'text', icon: Icon, placeholder, value, onChange, error }) => (
+  <div>
+    <label htmlFor={name} className="block text-sm font-medium text-slate-600 mb-2">{label}</label>
+    <div className="relative">
+      <input
+        id={name}
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        className={`peer w-full pl-16 pr-4 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${error ? 'border-red-400' : 'border-slate-200'}`}
+        placeholder={placeholder}
+      />
+      <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-100 text-slate-400 peer-focus:bg-primary peer-focus:text-white">
+        <Icon size={20} />
+      </div>
+    </div>
+    {error && (
+      <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+        <span className="w-1 h-1 rounded-full bg-red-500" />
+        {error}
+      </motion.p>
+    )}
+  </div>
+);
+
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -14,7 +50,6 @@ const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '', birthDate: '', password: '', confirmPassword: '',
@@ -72,27 +107,12 @@ const RegisterPage: React.FC = () => {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const InputField = ({ name, label, type = 'text', icon: Icon, placeholder }: { name: string; label: string; type?: string; icon: React.ElementType; placeholder: string }) => (
-    <div>
-      <label className="block text-sm font-medium text-slate-600 mb-2">{label}</label>
-      <div className={`relative transition-all duration-300 ${focusedField === name ? 'scale-[1.02]' : ''}`}>
-        <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === name ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
-          <Icon size={20} />
-        </div>
-        <input type={type} name={name} value={formData[name as keyof typeof formData]} onChange={handleChange} onFocus={() => setFocusedField(name)} onBlur={() => setFocusedField(null)}
-          className={`w-full pl-16 pr-4 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors[name] ? 'border-red-400' : 'border-slate-200'}`}
-          placeholder={placeholder} />
-      </div>
-      {errors[name] && <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-red-500 text-xs mt-1.5 flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-red-500" />{errors[name]}</motion.p>}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Left side */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary">
-        <motion.div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 8, repeat: Infinity }} />
-        <motion.div className="absolute bottom-20 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl" animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 10, repeat: Infinity }} />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-primary via-accent to-blue">
+        <motion.div className="absolute top-20 left-20 w-72 h-72 bg-white/15 rounded-full blur-3xl" animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }} transition={{ duration: 8, repeat: Infinity }} />
+        <motion.div className="absolute bottom-20 right-10 w-96 h-96 bg-yellow/25 rounded-full blur-3xl" animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 10, repeat: Infinity }} />
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
 
         <div className="relative z-10 p-12 flex flex-col justify-between w-full">
@@ -107,34 +127,34 @@ const RegisterPage: React.FC = () => {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur rounded-full text-white/90 text-sm font-medium mb-6 border border-white/20">
-              <Sparkles size={16} className="text-accent" />
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur rounded-full text-white text-sm font-semibold mb-6 border border-white/30 shadow-lg">
+              <Sparkles size={16} className="text-yellow" />
               Inscriptions ouvertes
             </div>
-            <h1 className="text-5xl font-black text-white mb-6 leading-tight">
-              Rejoignez<br /><span className="text-accent">l'aventure OAIB</span>
+            <h1 className="text-5xl font-black text-white mb-6 leading-tight drop-shadow-lg">
+              Rejoignez<br /><span className="text-accent drop-shadow-lg">l'aventure OAIB</span>
             </h1>
-            <p className="text-white/70 text-lg max-w-md leading-relaxed">
+            <p className="text-white text-lg max-w-md leading-relaxed drop-shadow-md">
               Participez aux Olympiades d'Intelligence Artificielle du Bénin et représentez votre pays à l'international.
             </p>
           </motion.div>
 
           {/* Steps */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="space-y-4">
-            <div className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${step >= 1 ? 'bg-accent text-primary' : 'bg-white/10 text-white/50'}`}>
+            <div className="flex items-center gap-4 p-4 bg-white/15 backdrop-blur rounded-2xl border border-white/30 shadow-lg">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${step >= 1 ? 'bg-accent text-white shadow-lg' : 'bg-white/10 text-white/50'}`}>
                 {step > 1 ? <CheckCircle size={24} /> : '1'}
               </div>
-              <div><p className="font-semibold text-white">Informations personnelles</p><p className="text-white/60 text-sm">Prénom, nom, email, téléphone</p></div>
+              <div><p className="font-semibold text-white drop-shadow">Informations personnelles</p><p className="text-white/90 text-sm drop-shadow-sm">Prénom, nom, email, téléphone</p></div>
             </div>
-            <div className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${step >= 2 ? 'bg-accent text-primary' : 'bg-white/10 text-white/50'}`}>2</div>
-              <div><p className={`font-semibold ${step >= 2 ? 'text-white' : 'text-white/50'}`}>Sécurité du compte</p><p className="text-white/60 text-sm">Mot de passe et conditions</p></div>
+            <div className="flex items-center gap-4 p-4 bg-white/15 backdrop-blur rounded-2xl border border-white/30 shadow-lg">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg transition-all ${step >= 2 ? 'bg-accent text-white shadow-lg' : 'bg-white/10 text-white/50'}`}>2</div>
+              <div><p className={`font-semibold drop-shadow ${step >= 2 ? 'text-white' : 'text-white/60'}`}>Sécurité du compte</p><p className="text-white/90 text-sm drop-shadow-sm">Mot de passe et conditions</p></div>
             </div>
           </motion.div>
 
           <div className="pt-8">
-            <p className="text-white/80">Déjà inscrit ? <Link to="/connexion" className="text-accent font-bold hover:text-accent/80 transition-colors">Se connecter</Link></p>
+            <p className="text-white drop-shadow">Déjà inscrit ? <Link to="/connexion" className="text-accent font-bold hover:text-yellow transition-colors drop-shadow">Se connecter</Link></p>
           </div>
         </div>
       </div>
@@ -170,13 +190,13 @@ const RegisterPage: React.FC = () => {
                 {step === 1 && (
                   <motion.div key="step1" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <InputField name="firstName" label="Prénom *" icon={User} placeholder="Jean" />
-                      <InputField name="lastName" label="Nom *" icon={User} placeholder="Dupont" />
+                      <InputField name="firstName" label="Prénom *" icon={User} placeholder="Jean" value={formData.firstName} onChange={handleChange} error={errors.firstName} />
+                      <InputField name="lastName" label="Nom *" icon={User} placeholder="Dupont" value={formData.lastName} onChange={handleChange} error={errors.lastName} />
                     </div>
-                    <InputField name="email" label="Email *" type="email" icon={Mail} placeholder="votreemail@exemple.com" />
-                    <InputField name="phone" label="Téléphone *" type="tel" icon={Phone} placeholder="+229 97 00 00 00" />
-                    <InputField name="birthDate" label="Date de naissance *" type="date" icon={Calendar} placeholder="" />
-                    <motion.button type="button" onClick={handleNextStep} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all">
+                    <InputField name="email" label="Email *" type="email" icon={Mail} placeholder="votreemail@exemple.com" value={formData.email} onChange={handleChange} error={errors.email} />
+                    <InputField name="phone" label="Téléphone *" type="tel" icon={Phone} placeholder="+229 97 00 00 00" value={formData.phone} onChange={handleChange} error={errors.phone} />
+                    <InputField name="birthDate" label="Date de naissance *" type="date" icon={Calendar} placeholder="" value={formData.birthDate} onChange={handleChange} error={errors.birthDate} />
+                    <motion.button type="button" onClick={handleNextStep} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full flex items-center justify-center gap-3 py-4 bg-accent text-white font-bold rounded-xl hover:bg-accent-light hover:shadow-lg hover:shadow-accent/30 transition-all">
                       <span>Continuer</span><ArrowRight size={20} />
                     </motion.button>
                   </motion.div>
@@ -185,12 +205,12 @@ const RegisterPage: React.FC = () => {
                 {step === 2 && (
                   <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-2">Mot de passe *</label>
-                      <div className={`relative transition-all duration-300 ${focusedField === 'password' ? 'scale-[1.02]' : ''}`}>
-                        <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'password' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
-                        <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField(null)}
-                          className={`w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.password ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
+                      <label htmlFor="password" className="block text-sm font-medium text-slate-600 mb-2">Mot de passe *</label>
+                      <div className="relative">
+                        <input id="password" type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
+                          className={`peer w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.password ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
+                        <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-100 text-slate-400 peer-focus:bg-primary peer-focus:text-white"><Lock size={20} /></div>
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400">
                           {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
@@ -199,12 +219,12 @@ const RegisterPage: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-2">Confirmer *</label>
-                      <div className={`relative transition-all duration-300 ${focusedField === 'confirmPassword' ? 'scale-[1.02]' : ''}`}>
-                        <div className={`pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-all ${focusedField === 'confirmPassword' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}><Lock size={20} /></div>
-                        <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} onFocus={() => setFocusedField('confirmPassword')} onBlur={() => setFocusedField(null)}
-                          className={`w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.confirmPassword ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 transition-all">
+                      <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-600 mb-2">Confirmer *</label>
+                      <div className="relative">
+                        <input id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" value={formData.confirmPassword} onChange={handleChange}
+                          className={`peer w-full pl-16 pr-14 py-4 bg-slate-50 border rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/20 transition-all ${errors.confirmPassword ? 'border-red-400' : 'border-slate-200'}`} placeholder="••••••••" />
+                        <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center transition-colors bg-slate-100 text-slate-400 peer-focus:bg-primary peer-focus:text-white"><Lock size={20} /></div>
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl flex items-center justify-center text-slate-400">
                           {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
@@ -229,7 +249,7 @@ const RegisterPage: React.FC = () => {
                       <motion.button type="button" onClick={() => setStep(1)} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 flex items-center justify-center gap-2 py-4 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all">
                         <ArrowLeft size={18} /><span>Retour</span>
                       </motion.button>
-                      <motion.button type="submit" disabled={isLoading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 flex items-center justify-center gap-2 py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-50">
+                      <motion.button type="submit" disabled={isLoading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 flex items-center justify-center gap-2 py-4 bg-red text-white font-bold rounded-xl hover:bg-red-light hover:shadow-lg hover:shadow-red/30 transition-all disabled:opacity-50">
                         {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>S'inscrire</span><ArrowRight size={18} /></>}
                       </motion.button>
                     </div>
