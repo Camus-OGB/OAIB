@@ -25,7 +25,22 @@ else:
 # ──────────────────────────────────────────────
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-81j5yt50(jj@=1v!o0$g_f0=q#pdj)1-4&(6cz#z9_7b3g%-&i')
 DEBUG = config('DEBUG', default=True, cast=bool)
+
+# ALLOWED_HOSTS — Configuration pour production et développement
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
+
+# En production, ajouter automatiquement les domaines de déploiement courants
+if not DEBUG:
+    ALLOWED_HOSTS.extend([
+        '.onrender.com',      # Render
+        '.railway.app',       # Railway
+        '.vercel.app',        # Vercel
+        '.herokuapp.com',     # Heroku
+        '.fly.dev',           # Fly.io
+    ])
+# Ou permettre tous les hosts si RENDER est détecté (variable d'environnement Render)
+if os.environ.get('RENDER'):
+    ALLOWED_HOSTS.append('.onrender.com')
 
 # ──────────────────────────────────────────────
 # APPLICATIONS
