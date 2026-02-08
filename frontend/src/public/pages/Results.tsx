@@ -105,11 +105,77 @@ const Results: React.FC = () => {
         </div>
       </section>
 
+      {/* Innovation Section - Cards horizontales */}
+      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 -mt-10 relative z-10 bg-background-alt overflow-hidden">
+        {/* Patterns */}
+        <BinaryRainPattern className="w-[100px] h-[300px] text-pattern absolute top-0 right-10 opacity-25" />
+        <HexagonPattern className="w-[200px] h-[200px] text-accent absolute bottom-10 left-20 opacity-20" />
+        {/* Benin accent */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 flex">
+          <div className="flex-1 bg-benin-green/25" />
+          <div className="flex-1 bg-benin-yellow/30" />
+          <div className="flex-1 bg-benin-red/25" />
+        </div>
+        <div className="max-w-6xl mx-auto">
+          <AnimatedSection className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent mb-3">Projets</p>
+              <h2 className="text-3xl md:text-4xl font-black text-text">Innovations des Laureats</h2>
+              <p className="text-text-secondary mt-2 max-w-lg">Des solutions IA concues par nos talents pour resoudre des problemes reels au Benin.</p>
+            </div>
+            <a href="#" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-light transition-all">
+              GitHub <ArrowUpRight size={16} />
+            </a>
+          </AnimatedSection>
+
+          {/* Layout horizontal pour les projets */}
+          <div className="space-y-6">
+            {innovations.map((item, idx) => (
+              <AnimatedCard key={idx} delay={idx * 0.1}>
+                <article className="group bg-white rounded-2xl overflow-hidden border border-border hover:shadow-xl transition-all duration-300">
+                  <div className="flex flex-col md:flex-row">
+                    {/* Image */}
+                    <div className="md:w-72 lg:w-96 h-48 md:h-auto overflow-hidden relative shrink-0">
+                      <OptimizedImage src={item.image} alt={item.title} className="h-full group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute top-4 left-4 flex items-center gap-2">
+                        <div className="bg-accent text-white p-2 rounded-lg">
+                          <item.icon size={18} />
+                        </div>
+                        <span className="bg-black/50 backdrop-blur-sm text-white font-bold text-xs px-3 py-1.5 rounded-lg">{item.category}</span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6 md:p-8 flex flex-col flex-1">
+                      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                        <h3 className="text-xl font-bold text-text group-hover:text-primary transition-colors">{item.title}</h3>
+                        <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-bold">
+                          {item.impact}
+                        </div>
+                      </div>
+                      <p className="text-text-secondary leading-relaxed mb-6 flex-1">{item.desc}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-xs font-bold text-text-muted uppercase">Stack:</span>
+                        {item.tech.map((t, i) => (
+                          <span key={i} className="text-xs bg-background text-text-secondary font-semibold px-3 py-1.5 rounded-lg border border-border">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </AnimatedCard>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Timeline - Style horizontal moderne */}
-      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 -mt-10 relative z-10 overflow-hidden">
+      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 relative overflow-hidden">
         {/* Background image */}
         <div className="absolute inset-0 opacity-[0.02]">
-          <img 
+          <img
             src="https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
             alt=""
             className="w-full h-full object-cover"
@@ -125,7 +191,7 @@ const Results: React.FC = () => {
                   Rapport PDF
                 </button>
               </div>
-              
+
               {/* Timeline horizontale */}
               <div className="relative">
                 <div className="hidden md:block absolute top-6 left-0 right-0 h-1 bg-border" />
@@ -284,72 +350,6 @@ const Results: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </AnimatedCard>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Innovation Section - Cards horizontales */}
-      <section className="px-6 sm:px-10 md:px-16 lg:px-20 py-16 bg-background-alt relative overflow-hidden">
-        {/* Patterns */}
-        <BinaryRainPattern className="w-[100px] h-[300px] text-pattern absolute top-0 right-10 opacity-25" />
-        <HexagonPattern className="w-[200px] h-[200px] text-accent absolute bottom-10 left-20 opacity-20" />
-        {/* Benin accent */}
-        <div className="absolute bottom-0 left-0 right-0 h-0.5 flex">
-          <div className="flex-1 bg-benin-green/25" />
-          <div className="flex-1 bg-benin-yellow/30" />
-          <div className="flex-1 bg-benin-red/25" />
-        </div>
-        <div className="max-w-6xl mx-auto">
-          <AnimatedSection className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent mb-3">Projets</p>
-              <h2 className="text-3xl md:text-4xl font-black text-text">Innovations des Laureats</h2>
-              <p className="text-text-secondary mt-2 max-w-lg">Des solutions IA concues par nos talents pour resoudre des problemes reels au Benin.</p>
-            </div>
-            <a href="#" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary-light transition-all">
-              GitHub <ArrowUpRight size={16} />
-            </a>
-          </AnimatedSection>
-          
-          {/* Layout horizontal pour les projets */}
-          <div className="space-y-6">
-            {innovations.map((item, idx) => (
-              <AnimatedCard key={idx} delay={idx * 0.1}>
-                <article className="group bg-white rounded-2xl overflow-hidden border border-border hover:shadow-xl transition-all duration-300">
-                  <div className="flex flex-col md:flex-row">
-                    {/* Image */}
-                    <div className="md:w-72 lg:w-96 h-48 md:h-auto overflow-hidden relative shrink-0">
-                      <OptimizedImage src={item.image} alt={item.title} className="h-full group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute top-4 left-4 flex items-center gap-2">
-                        <div className="bg-accent text-white p-2 rounded-lg">
-                          <item.icon size={18} />
-                        </div>
-                        <span className="bg-black/50 backdrop-blur-sm text-white font-bold text-xs px-3 py-1.5 rounded-lg">{item.category}</span>
-                      </div>
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="p-6 md:p-8 flex flex-col flex-1">
-                      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                        <h3 className="text-xl font-bold text-text group-hover:text-primary transition-colors">{item.title}</h3>
-                        <div className="bg-green-50 text-green-700 px-3 py-1.5 rounded-lg text-sm font-bold">
-                          {item.impact}
-                        </div>
-                      </div>
-                      <p className="text-text-secondary leading-relaxed mb-6 flex-1">{item.desc}</p>
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-xs font-bold text-text-muted uppercase">Stack:</span>
-                        {item.tech.map((t, i) => (
-                          <span key={i} className="text-xs bg-background text-text-secondary font-semibold px-3 py-1.5 rounded-lg border border-border">
-                            {t}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </article>
               </AnimatedCard>
             ))}
           </div>

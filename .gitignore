@@ -1,29 +1,74 @@
-# Dépendances
-node_modules/
-/.pnp
-.pnp.js
+# ═══════════════════════════════════════════════════
+# .gitignore principal - OAIB
+# Architecture: backend/ et frontend/ séparés
+# ═══════════════════════════════════════════════════
 
-# Production
-dist/
-build/
-
-# Environnement (TRÈS IMPORTANT)
+# ─── Environnement (TRÈS IMPORTANT) ────────────────
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.env.production
+.env.development
 
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# ─── Python / Backend ──────────────────────────────
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.Python
+backend/venv/
+backend/env/
+backend/ENV/
+backend/db.sqlite3
+backend/db.sqlite3-journal
+backend/media/
+backend/staticfiles/
+backend/static/
+backend/*.log
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.mypy_cache/
+backend/.dmypy.json
+backend/dmypy.json
 
-# Éditeurs et Système
+# ─── Node.js / Frontend ────────────────────────────
+frontend/node_modules/
+frontend/.pnp
+frontend/.pnp.js
+frontend/dist/
+frontend/build/
+frontend/.vite/
+frontend/*.log
+frontend/.DS_Store
+
+# ─── Éditeurs et IDE ───────────────────────────────
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 .DS_Store
 
-Contexte.md
+# ─── Fichiers temporaires ──────────────────────────
+*.tmp
+*.bak
+*.cache
+.cache/
 
+# ─── Contexte (fichier de travail personnel) ──────
+Contexte.md
 files/
+
+# ─── Documentation de travail ──────────────────────
+# Garder uniquement les README officiels
+CHECKUP_*.md
+CORRECTIONS_*.md
+LIAISON_*.md
+NEXT_STEPS.md
+QUICK_START_*.md
+README_UPLOAD.md
+RESUME_*.md
+SETUP_*.md
+SUPABASE_SETUP.md
+UPLOAD_*.md
